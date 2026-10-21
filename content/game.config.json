@@ -24,7 +24,8 @@
       "insertToken": 230,
       "reelStop": 150,
       "cardExit": 240,
-      "numberCount": 500
+      "numberCount": 500,
+      "explosion": 450
     },
     "wheelTurns": 5,
     "reducedMotionDuration": 50,
@@ -36,7 +37,21 @@
     "randomSeed": true,
     "rareRank": 5,
     "currency": "ARS",
-    "locale": "es-AR"
+    "locale": "es-AR",
+    "prizeTiers": [
+      {
+        "minimum": 0,
+        "scale": 1
+      },
+      {
+        "minimum": 100000,
+        "scale": 1.35
+      },
+      {
+        "minimum": 1000000,
+        "scale": 1.7
+      }
+    ]
   },
   "symbols": {
     "stone": {
@@ -159,7 +174,7 @@
       "categories": [
         {
           "id": "w2_cat_1",
-          "weight": 1,
+          "weight": 30,
           "name_key": "wheel_2.w2_cat_1.name",
           "description_key": "wheel_2.w2_cat_1.description",
           "color": "#ed336b",
@@ -168,7 +183,7 @@
         },
         {
           "id": "w2_cat_2",
-          "weight": 1,
+          "weight": 30,
           "name_key": "wheel_2.w2_cat_2.name",
           "description_key": "wheel_2.w2_cat_2.description",
           "color": "#993bfa",
@@ -177,7 +192,7 @@
         },
         {
           "id": "w2_cat_3",
-          "weight": 1,
+          "weight": 30,
           "name_key": "wheel_2.w2_cat_3.name",
           "description_key": "wheel_2.w2_cat_3.description",
           "color": "#087ddd",
@@ -186,7 +201,7 @@
         },
         {
           "id": "w2_cat_4_finale",
-          "weight": 1,
+          "weight": 10,
           "name_key": "wheel_2.w2_cat_4_finale.name",
           "description_key": "wheel_2.w2_cat_4_finale.description",
           "color": "#e87d0b",
@@ -423,10 +438,10 @@
         "art": "spin"
       },
       "bonus": {
-        "spins": 1,
         "name_key": "effects.bonus.name",
         "icon_key": "effects.bonus.icon",
-        "art": "bolt"
+        "art": "bolt",
+        "collect": "orthogonal"
       }
     },
     "ranks": {

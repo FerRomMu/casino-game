@@ -8,7 +8,7 @@ export function createGame(config, rng, participantId = 'participant_1') {
     progression: 0, appearances: 0, continued: false, points: 0, spins: 0,
     total: 0, turn: 0, usedCards: [], grid: createGrid(config.grid, rng),
     reels: createReels(config.slots), category: null, card: null, extraction: null,
-    preview: null, lastSpin: null, history: []
+    preview: null, previewOutcome: null, newMaximum: false, maximumSeen: 0, lastSpin: null, history: []
   };
 }
 
@@ -83,6 +83,9 @@ export function transition(state, action, context) {
     case 'SHOW_PREVIEW':
       requirePhase('machine');
       s.preview = analyzeSlots(s.reels, config.slots);
+      s.newMaximum = s.preview.maximum.payout > s.maximumSeen;
+      s.maximumSeen = Math.max(s.maximumSeen, s.preview.maximum.payout);
+      s.previewOutcome = s.newMaximum ? s.preview.maximum : spinSlots(s.reels, config.slots, rng);
       s.phase = 'preview';
       break;
     case 'END_PREVIEW': requirePhase('preview'); returnToWheel(); break;

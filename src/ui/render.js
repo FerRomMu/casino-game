@@ -35,15 +35,6 @@ export function createRenderer(config, t) {
     `<div class="marquee-bulbs ${cls}" aria-hidden="true">${Array.from({ length: n }, (_, i) => `<i style="--i:${i}"></i>`).join("")}</div>`;
   const sparks = () =>
     `<div class="spark-particles" aria-hidden="true">${Array.from({ length: config.ui.particleCount }, (_, i) => `<i style="--i:${i};--x:${(i * 37 + 11) % 100}%;--delay:${(i % 7) * -0.8}s"></i>`).join("")}</div>`;
-  const phaseIndex = (s) =>
-    ["wheel", "category", "cards", "progression", "decision"].includes(s.phase)
-      ? 0
-      : ["offer", "challenge", "reward"].includes(s.phase)
-        ? 1
-        : ["grid", "machine", "preview"].includes(s.phase)
-          ? 2
-          : 3;
-
   function wheelMarkup(state, local) {
     const sectors = wheelSectors(config.wheels[state.wheel].categories);
     const polar = (a, r) => [
@@ -121,17 +112,20 @@ export function createRenderer(config, t) {
 
   function machine(s, line, l) {
     const reels = l.displayReels ?? s.reels;
-    const stops = ["final_result", "final_ready", "finished"].includes(s.phase)
-      ? s.lastSpin?.stops
-      : null;
+    const stops =
+      l.displayStops ??
+      (s.phase === "preview" ? s.previewOutcome.stops : s.lastSpin?.stops);
     const markup = reels
       .map((reel, i) => {
-        const center = line?.[i] ?? config.slots.stone,
+        const center =
+            stops?.[i] != null
+              ? reel[stops[i]]
+              : (line?.[i] ?? config.slots.stone),
           pos = stops?.[i] ?? Math.max(0, reel.indexOf(center));
         const above = reel[(pos + reel.length - 1) % reel.length],
           below = reel[(pos + 1) % reel.length];
         const rare = (config.grid.ranks[center] ?? 0) >= config.ui.rareRank;
-        return `<div class="reel ${l.slotSpinning ? "reel-spinning" : ""} ${rare ? "rare-reel" : ""}" data-reel="${i}" style="--reel-index:${i};--reel-length:${reel.length}"><div class="reel-window"><div class="reel-static"><div class="reel-cell adjacent-symbol">${symbol(above)}</div><div class="reel-cell payline-symbol">${symbol(center)}</div><div class="reel-cell adjacent-symbol">${symbol(below)}</div></div><div class="reel-blur-strip" aria-hidden="true">${[...reel, ...reel.slice(0, 3)].map((id) => `<div class="reel-cell">${symbol(id)}</div>`).join("")}</div></div><span class="reel-shine"></span></div>`;
+        return `<div class="reel ${l.slotSpinning ? "reel-spinning" : ""} ${rare ? "rare-reel" : ""}" data-reel="${i}" data-position="${pos}" style="--reel-index:${i};--reel-length:${reel.length}"><div class="reel-window"><div class="reel-static"><div class="reel-cell adjacent-symbol">${symbol(above)}</div><div class="reel-cell payline-symbol">${symbol(center)}</div><div class="reel-cell adjacent-symbol">${symbol(below)}</div></div><div class="reel-blur-strip" aria-hidden="true">${[...reel, ...reel.slice(0, 3)].map((id) => `<div class="reel-cell">${symbol(id)}</div>`).join("")}</div></div><span class="reel-shine"></span></div>`;
       })
       .join("");
     return `<div class="slot-machine"><div class="machine-crown">${art("crown")}</div><div class="machine-marquee">${bulbs(16)}<span>✦</span><b>${text("app.title")}</b><span>✦</span></div><div class="machine-body"><div class="machine-column column-left"></div><div class="reel-frame"><span class="payline-arrow arrow-left">▸</span>${markup}<div class="payline" aria-hidden="true"></div><span class="payline-arrow arrow-right">◂</span></div><div class="machine-column column-right"></div></div><div class="machine-base"><span>✦ ✦ ✦</span><b>${text("ui.machine")}</b><span>✦ ✦ ✦</span></div></div>`;
@@ -146,7 +140,7 @@ export function createRenderer(config, t) {
       ].includes(s.phase),
       finished = s.phase === "finished",
       preview = s.phase === "preview";
-    const outcome = preview ? s.preview[l.previewMode] : null;
+    const outcome = preview ? s.previewOutcome : null;
     const idle = (l.displayReels ?? s.reels).map(
       (reel) =>
         reel.find((id) => id !== config.slots.stone) ?? config.slots.stone,
@@ -172,7 +166,7 @@ export function createRenderer(config, t) {
             : preview
               ? "ui.preview"
               : "ui.installing";
-    return `<section class="scene slots-scene ${l.enter ? "scene-enter" : ""} ${l.prizeVisible ? "show-prize" : ""}"><div class="scene-heading"><span class="eyebrow">${text(final ? "ui.finalBadge" : preview ? "ui.previewBadge" : "ui.machine")}</span><h1>${text(title)}</h1>${!final && !preview ? `<p>${text("ui.installingHint")}</p>` : ""}</div>${final && !finished ? `<div class="final-stats"><div class="final-spin-bank"><span>${text("ui.remaining")}</span><b data-remaining-spins>${number(s.spins)}</b></div><div class="pot-bank"><span>${text("ui.pot")}</span><b data-pot>${money(s.preview.maximum.payout * s.spins)}</b></div></div>` : ""}<div class="machine-theater">${machine(s, line, l)}${!final && !preview ? `<div class="token-queue" aria-label="${text("ui.collected")}">${s.extraction.tokens.map((token, i) => `<div data-queue="${i}" class="queue-token">${tileContent({ kind: "symbol", ...token })}</div>`).join("")}</div>` : ""}</div>${preview || s.phase === "final_result" || finished ? `<div class="prize-board ${l.prizeVisible || finished ? "is-visible" : ""}" aria-live="polite"><span>${text(finished ? "ui.total" : preview ? (l.previewMode === "maximum" ? "ui.previewMax" : "ui.previewMean") : prize > 0 ? "ui.prize" : "ui.zero")}</span><strong data-prize data-value="${prize}">${money(prize)}</strong>${preview && l.previewMode === "representative" ? `<small>${text("ui.meanValue")} · ${money(s.preview.expected)}</small>` : ""}</div>` : ""}${preview ? `<p class="fine-print">${text("ui.previewNote")}</p>` : ""}${s.phase === "final_ready" ? `<div class="final-actions">${button("final-spin", "ui.finalSpin", "primary green-button final-spin", l.busy ? "disabled" : "")}<p>${text("ui.finalSpinHint")}</p></div>` : ""}${s.phase === "finale" ? `<div class="final-intro"><b>${number(s.spins)}</b><span>${text("ui.finalIntroLabel")}</span></div>` : ""}${s.phase === "final_result" && l.slotSpinning ? `<p class="spinning-label">${text("ui.prizePending")}</p>` : ""}${finished ? `<div class="finish-actions"><p>${text("ui.finishedHint")}</p>${button("restart", "app.restart", "primary green-button")}</div>` : ""}</section>`;
+    return `<section class="scene slots-scene ${l.enter ? "scene-enter" : ""} ${l.prizeVisible ? "show-prize" : ""}"><div class="scene-heading"><span class="eyebrow">${text(final ? "ui.finalBadge" : preview ? "ui.previewBadge" : "ui.machine")}</span><h1>${text(title)}</h1>${!final && !preview ? `<p>${text("ui.installingHint")}</p>` : ""}</div>${final && !finished ? `<div class="final-stats"><div class="final-spin-bank"><span>${text("ui.remaining")}</span><b data-remaining-spins>${number(s.spins)}</b></div><div class="pot-bank"><span>${text("ui.pot")}</span><b data-pot>${money(s.preview.maximum.payout * s.spins)}</b></div></div>` : ""}<div class="machine-theater">${machine(s, line, l)}${!final && !preview ? `<div class="token-queue" aria-label="${text("ui.collected")}">${s.extraction.tokens.map((token, i) => `<div data-queue="${i}" class="queue-token">${tileContent({ kind: "symbol", ...token })}</div>`).join("")}</div>` : ""}</div>${preview || s.phase === "final_result" || finished ? `<div class="prize-board ${l.prizeVisible || finished ? "is-visible" : ""} ${preview && s.newMaximum ? "new-maximum" : ""}" style="--prize-scale:${[...config.ui.prizeTiers].reverse().find((tier) => prize >= tier.minimum)?.scale ?? 1}" data-preview-kind="${preview ? (s.newMaximum ? "maximum" : "random") : "final"}" aria-live="polite"><span>${text(finished ? "ui.total" : preview ? (s.newMaximum ? "ui.previewMax" : "ui.previewExample") : prize > 0 ? "ui.prize" : "ui.zero")}</span><strong data-prize data-value="${prize}">${money(prize)}</strong></div>` : ""}${preview ? `<p class="fine-print">${text("ui.previewNote")}</p>` : ""}${s.phase === "final_ready" ? `<div class="final-actions">${button("final-spin", "ui.finalSpin", "primary green-button final-spin", l.busy ? "disabled" : "")}<p>${text("ui.finalSpinHint")}</p></div>` : ""}${s.phase === "finale" ? `<div class="final-intro"><b>${number(s.spins)}</b><span>${text("ui.finalIntroLabel")}</span></div>` : ""}${s.phase === "final_result" && l.slotSpinning ? `<p class="spinning-label">${text("ui.prizePending")}</p>` : ""}${finished ? `<div class="finish-actions"><p>${text("ui.finishedHint")}</p>${button("restart", "app.restart", "primary green-button")}</div>` : ""}</section>`;
   }
 
   function progressionScene(s, l) {
@@ -180,20 +174,21 @@ export function createRenderer(config, t) {
   }
 
   function sidebar(s, l) {
-    const filled = s.reels
+    const reels = l.displayReels ?? s.reels;
+    const filled = reels
         .flat()
         .filter((id) => id !== config.slots.stone).length,
       capacity = config.slots.reels * config.slots.positions;
-    return `<aside class="status-sidebar" data-no-spin><section class="jackpot-panel"><div class="jackpot-label">${art("crown")}<span>${text("ui.jackpot")}</span>${art("crown")}</div><strong>${money(config.slots.payout.exceptional.value)}</strong><div class="jackpot-symbols">${Array.from({ length: config.slots.reels }, () => symbol(config.slots.payout.exceptional.symbol)).join("")}</div><p>${text("ui.jackpotHint")}</p></section><section class="machine-status"><div class="panel-heading"><span>${text("ui.machine")}</span><span class="panel-tag">${filled === capacity ? text("ui.full") : `${Math.round((filled / capacity) * 100)}%`}</span></div><div class="mini-reels">${s.reels.map((reel) => `<div>${symbol([...reel].reverse().find((id) => id !== config.slots.stone) ?? config.slots.stone)}</div>`).join("")}</div><div class="capacity-label"><b data-filled>${filled}<small> / ${capacity}</small></b><span>${text("ui.filled")}</span></div><div class="capacity-bar"><i style="--fill:${(filled / capacity) * 100}%"></i></div><p class="panel-caption">${text("ui.machineHint")}</p><details class="composition" ${l.inventoryOpen ? "open" : ""}><summary>${text("ui.inventory")}<span>⌄</span></summary><div class="inventory-table">${Object.keys(
+    return `<aside class="status-sidebar" data-no-spin><section class="jackpot-panel"><div class="jackpot-label">${art("crown")}<span>${text("ui.jackpot")}</span>${art("crown")}</div><strong>${money(config.slots.payout.exceptional.value)}</strong><div class="jackpot-symbols">${Array.from({ length: config.slots.reels }, () => symbol(config.slots.payout.exceptional.symbol)).join("")}</div><p>${text("ui.jackpotHint")}</p></section><section class="machine-status"><div class="panel-heading"><span>${text("ui.machine")}</span><span class="panel-tag">${filled === capacity ? text("ui.full") : `${Math.round((filled / capacity) * 100)}%`}</span></div><div class="mini-reels">${reels.map((reel) => `<div>${symbol([...reel].reverse().find((id) => id !== config.slots.stone) ?? config.slots.stone)}</div>`).join("")}</div><div class="capacity-label"><b data-filled>${filled}<small> / ${capacity}</small></b><span>${text("ui.filled")}</span></div><div class="capacity-bar"><i style="--fill:${(filled / capacity) * 100}%"></i></div><p class="panel-caption">${text("ui.machineHint")}</p><section class="composition"><h2>${text("ui.inventory")}</h2><div class="inventory-table">${Object.keys(
       config.slots.target,
     )
       .map(
         (id) =>
-          `<div>${symbol(id)}<span>${s.reels.map((reel) => reel.filter((x) => x === id).length).join(" · ")}</span></div>`,
+          `<div>${symbol(id)}<span>${reels.map((reel) => reel.filter((x) => x === id).length).join("·")}</span></div>`,
       )
       .join(
         "",
-      )}</div></details></section><section class="spin-bank"><div>${art("spin")}<span>${text("ui.spins")}<small>${text("ui.spinBankHint")}</small></span><strong data-banked-spins>${number(s.spins)}</strong></div></section><section class="progress-panel"><div class="panel-heading"><span>${text("ui.progression")}</span><b>${s.progression} / ${config.progression.choiceAt}</b></div><div class="progression-dots">${Array.from({ length: config.progression.choiceAt }, (_, i) => `<span class="flame-medal ${i < s.progression ? "lit" : ""}">${art("flame")}</span>`).join("")}</div><p class="panel-caption">${text("ui.progressHint")}</p></section></aside>`;
+      )}</div></section></section><section class="spin-bank"><div>${art("spin")}<span>${text("ui.spins")}<small>${text("ui.spinBankHint")}</small></span><strong data-banked-spins>${number(s.spins)}</strong></div></section><section class="progress-panel"><div class="panel-heading"><span>${text("ui.progression")}</span><b>${s.progression} / ${config.progression.choiceAt}</b></div><div class="progression-dots">${Array.from({ length: config.progression.choiceAt }, (_, i) => `<span class="flame-medal ${i < s.progression ? "lit" : ""}">${art("flame")}</span>`).join("")}</div><p class="panel-caption">${text("ui.progressHint")}</p></section></aside>`;
   }
 
   function render(s, l) {
@@ -211,7 +206,7 @@ export function createRenderer(config, t) {
     else if (phase === "decision")
       scene = `<section class="scene decision-scene scene-enter"><div class="big-fire">${art("flame")}</div><span class="eyebrow">${text(config.wheels[s.wheel].label_key)}</span><h1>${text("ui.decision")}</h1><p>${text("ui.decisionHint")}</p><div class="actions">${button("continue", "ui.continue", "secondary")}${button("advance", "ui.advance", "primary green-button")}</div></section>`;
     else scene = slotsScene(s, l);
-    return `<div class="casino-backdrop" aria-hidden="true"><span class="spotlight spotlight-left"></span><span class="spotlight spotlight-right"></span><span class="backdrop-diamond">♦</span><span class="backdrop-star">✦</span>${sparks()}</div><div class="app-shell"><header class="app-header" data-no-spin><div class="brand"><span class="brand-emblem">${art("wild")}</span><div><a href="./" class="wordmark">${text("app.title")}</a><span class="brand-tagline">${text("app.tagline")}</span></div></div><div class="header-center"><i class="live-dot"></i>${text("ui.live")}</div><div class="header-controls"><span class="demo-badge"><i></i>${text("app.demo")}</span><button type="button" class="icon-button" data-action="sound" aria-label="${text(l.sound ? "ui.audioOn" : "ui.audioOff")}" aria-pressed="${l.sound}">${icon(l.sound ? "speaker" : "muted")}</button><button type="button" class="icon-button fullscreen-button" data-action="fullscreen" aria-label="${text("ui.fullscreen")}">${icon("expand")}</button><button type="button" class="icon-button help-button" data-action="rules" aria-label="${text("ui.helpHint")}">?</button></div></header><div class="show-bar"><div class="round-label"><span class="round-icon">${art("spark")}</span><div><span>${text("ui.stage")}</span><strong>${text(config.wheels[s.wheel].label_key)}</strong></div></div><nav class="journey" aria-label="${text("ui.progression")}">${["ui.wheelStep", "ui.cardStep", "ui.gridStep", "ui.finalStep"].map((key, i) => `<span class="journey-step ${phaseIndex(s) === i ? "current" : ""} ${phaseIndex(s) > i ? "passed" : ""}"><b>${i + 1}</b><span>${text(key)}</span></span>`).join("")}</nav><div class="turn-label">${text("ui.turn")}<b data-turn>${String(s.turn).padStart(2, "0")}</b></div></div><div class="play-layout"><div class="cabinet"><div class="cabinet-top-lights">${bulbs(38)}</div><main class="stage ${l.busy ? "is-busy" : ""}" id="stage" data-phase="${s.phase}" data-busy="${l.busy}" tabindex="-1">${scene}</main><div class="cabinet-bottom"><span>✦ ✦ ✦</span><p>${text("ui.footer")}</p><span>✦ ✦ ✦</span></div></div>${sidebar(s, l)}</div><footer data-no-spin><span class="footer-brand">✦ ${text("app.title")}</span><p>${text("ui.legal")}</p><button type="button" class="text-button" data-action="request-restart">↻ ${text("ui.newGame")}</button></footer></div>`;
+    return `<div class="casino-backdrop" aria-hidden="true"><span class="spotlight spotlight-left"></span><span class="spotlight spotlight-right"></span><span class="backdrop-diamond">♦</span><span class="backdrop-star">✦</span>${sparks()}</div><div class="app-shell"><div class="play-layout"><div class="cabinet"><div class="cabinet-heading" data-no-spin><div class="brand"><span class="brand-emblem">${art("wild")}</span><div><span class="wordmark">${text("app.title")}</span><div class="round-label"><strong>${text(config.wheels[s.wheel].label_key)}</strong><span class="turn-label">${text("ui.turn")} <b data-turn>${String(s.turn).padStart(2, "0")}</b></span></div></div></div><div class="cabinet-controls"><button type="button" class="icon-button" data-action="sound" aria-label="${text(l.sound ? "ui.audioOn" : "ui.audioOff")}" aria-pressed="${l.sound}">${icon(l.sound ? "speaker" : "muted")}</button><button type="button" class="icon-button fullscreen-button" data-action="fullscreen" aria-label="${text("ui.fullscreen")}">${icon("expand")}</button><button type="button" class="icon-button" data-action="rules" aria-label="${text("ui.helpHint")}">?</button><button type="button" class="icon-button" data-action="request-restart" aria-label="${text("ui.newGame")}">↻</button></div></div><div class="cabinet-top-lights">${bulbs(38)}</div><main class="stage ${l.busy ? "is-busy" : ""}" id="stage" data-phase="${s.phase}" data-busy="${l.busy}" tabindex="-1">${scene}</main><div class="cabinet-bottom"><span>✦ ✦ ✦</span><p>${text("ui.footer")}</p><span>✦ ✦ ✦</span></div></div>${sidebar(s, l)}</div></div>`;
   }
   render.modal = (kind = "rules") =>
     `<div class="modal-scrim"><section class="rules-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1"><button type="button" class="modal-close icon-button" data-action="close-modal" aria-label="${text("app.close")}">×</button><span class="modal-emblem">${art(kind === "rules" ? "cards" : "spin")}</span><span class="eyebrow">${text("app.title")}</span><h2 id="modal-title">${text(kind === "rules" ? "ui.rulesTitle" : "ui.newGameConfirm")}</h2>${kind === "rules" ? `<div class="rule-steps">${[1, 2, 3].map((i) => `<div><b>${i}</b><div><h3>${text(`ui.rule${i}Title`)}</h3><p>${text(`ui.rule${i}Text`)}</p></div></div>`).join("")}</div>${button("close-modal", "ui.back", "primary green-button")}` : `<div class="actions">${button("close-modal", "ui.keepPlaying", "secondary")}${button("restart", "ui.confirmRestart")}</div>`}</section></div>`;

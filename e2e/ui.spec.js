@@ -64,7 +64,9 @@ async function offer(page) {
 async function noOverflow(page) {
   expect(
     await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
+      () =>
+        document.documentElement.scrollWidth <= innerWidth &&
+        document.documentElement.scrollHeight <= innerHeight,
     ),
   ).toBe(true);
 }
@@ -73,7 +75,7 @@ test("every configured illustration has visible SVG geometry", async ({
   page,
 }) => {
   await prepare(page);
-  await page.locator(".composition summary").click();
+  await expect(page.locator(".inventory-table")).toBeVisible();
   const geometry = await page
     .locator(".inventory-table [data-symbol]")
     .evaluateAll((nodes) =>
@@ -424,3 +426,251 @@ for (const width of [320, 390, 768, 1280]) {
     await noOverflow(page);
   });
 }
+
+async function contentFits(page) {
+  await noOverflow(page);
+  await expect(async () => {
+    const clipped = await page
+      .locator(
+        ".inventory-table, .inventory-table > div, #stage button:not(:disabled), .cabinet-controls button",
+      )
+      .evaluateAll((nodes) =>
+        nodes.flatMap((node) => {
+          if (!node.checkVisibility()) return [];
+          const r = node.getBoundingClientRect();
+          return r.left < -1 ||
+            r.top < -1 ||
+            r.right > innerWidth + 1 ||
+            r.bottom > innerHeight + 1
+            ? [{ element: node.className, rect: r.toJSON() }]
+            : [];
+        }),
+      );
+    expect(clipped).toEqual([]);
+  }).toPass({ timeout: 2000 });
+  await expect(page.locator(".composition summary")).toHaveCount(0);
+  await expect(page.locator(".app-header")).toHaveCount(0);
+}
+
+for (const [width, height] of [
+  [320, 568],
+  [390, 844],
+  [844, 390],
+  [1280, 720],
+]) {
+  test(`cabinet controls and persistent inventory fit ${width}x${height}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height });
+    await prepare(page, { force: { wheel_1: "cat_6" } });
+    await contentFits(page);
+    await offer(page);
+    await contentFits(page);
+    await click(page, "accept");
+    await ready(page, "challenge");
+    await contentFits(page);
+    await click(page, "more");
+    await click(page, "numeric");
+    await ready(page, "wheel");
+    await contentFits(page);
+  });
+}
+
+test("insertion lands on stones at actual positions and plays exactly one new-maximum preview", async ({
+  page,
+}) => {
+  await prepare(page, {
+    force: { wheel_1: "cat_1" },
+    reduced: false,
+    timings: {
+      flight: 100,
+      insertToken: 100,
+      previewSpin: 200,
+      previewPrize: 500,
+    },
+    mutate: (config) => {
+      // Keep a reachable maximum unchanged after its first symbol, exercising the random fallback next turn.
+      for (const values of Object.values(config.slots.payout.table))
+        for (let i = 1; i < values.length; i++) values[i] = 1000;
+      config.slots.payout.multiplier = 1;
+      config.slots.payout.exceptional.value = 1000;
+    },
+  });
+  await page.evaluate(() => {
+    window.machineSnapshots = [];
+    window.previews = [];
+    window.previewBoards = [];
+    const seenBoards = new WeakSet();
+    let lastPhase = "";
+    new MutationObserver(() => {
+      const stage = document.querySelector("#stage");
+      if (stage?.dataset.phase === "machine")
+        window.machineSnapshots.push(
+          [...document.querySelectorAll("[data-reel]")].map((reel) => ({
+            reel: reel.dataset.reel,
+            position: reel.dataset.position,
+            symbol: reel.querySelector(".payline-symbol [data-symbol]").dataset
+              .symbol,
+          })),
+        );
+      if (stage?.dataset.phase === "preview" && lastPhase !== "preview")
+        window.previews.push(
+          document.querySelector("[data-preview-kind]").dataset.previewKind,
+        );
+      const board = document.querySelector(
+        ".prize-board.is-visible[data-preview-kind]",
+      );
+      if (board && !seenBoards.has(board)) {
+        seenBoards.add(board);
+        window.previewBoards.push({
+          kind: board.dataset.previewKind,
+          label: board.querySelector("span").textContent,
+          labelSize: getComputedStyle(board.querySelector("span")).fontSize,
+          numberSize: getComputedStyle(board.querySelector("strong")).fontSize,
+        });
+      }
+      lastPhase = stage?.dataset.phase;
+    }).observe(document.querySelector("#app"), {
+      childList: true,
+      subtree: true,
+    });
+  });
+  for (let turn = 0; turn < 2; turn++) {
+    await offer(page);
+    await click(page, "accept");
+    await ready(page, "challenge");
+    await click(page, "success");
+    await page.waitForSelector('#stage[data-phase="wheel"][data-busy="false"]');
+    await ready(page, "wheel");
+    const board = await page.evaluate(
+      (index) => window.previewBoards[index],
+      turn,
+    );
+    expect(board.kind).toBe(turn === 0 ? "maximum" : "random");
+    expect(board.label).toBe(
+      strings[turn === 0 ? "ui.previewMax" : "ui.previewExample"],
+    );
+    expect(board.labelSize).toBe(board.numberSize);
+    await contentFits(page);
+  }
+  const { snapshots, previews } = await page.evaluate(() => ({
+    snapshots: window.machineSnapshots,
+    previews: window.previews,
+  }));
+  expect(previews).toEqual(["maximum", "random"]);
+  let inserted = 0;
+  for (let i = 1; i < snapshots.length; i++)
+    for (let r = 0; r < 4; r++) {
+      const before = snapshots[i - 1][r],
+        after = snapshots[i][r];
+      if (
+        before.position === after.position &&
+        before.symbol !== after.symbol &&
+        after.symbol !== original.slots.stone
+      ) {
+        expect(before.symbol).toBe(original.slots.stone);
+        inserted++;
+      }
+    }
+  expect(inserted).toBeGreaterThan(0);
+});
+
+test("blast animation collects the domain snapshot and high maximum uses a larger number", async ({
+  page,
+}) => {
+  const { createGame, transition } = await import("../src/domain/game.js");
+  const { seededRandom } = await import("../src/domain/random.js");
+  const decks = {
+    wheel_1: JSON.parse(
+      await readFile(
+        new URL("../content/cards_wheel_1.json", import.meta.url),
+        "utf8",
+      ),
+    ),
+    wheel_2: JSON.parse(
+      await readFile(
+        new URL("../content/cards_wheel_2.json", import.meta.url),
+        "utf8",
+      ),
+    ),
+  };
+  const cfg = structuredClone(original);
+  for (const c of cfg.wheels.wheel_1.categories)
+    c.weight = c.id === "cat_1" ? 1 : 0;
+  let expected, seed;
+  for (seed = 1; seed < 100; seed++) {
+    const rng = seededRandom(seed),
+      context = { config: cfg, decks, rng };
+    let s = createGame(cfg, rng);
+    for (const action of [
+      { type: "SPIN_WHEEL" },
+      { type: "SHOW_CARDS" },
+      { type: "PICK_CARD" },
+      { type: "ACCEPT" },
+      { type: "RESOLVE", success: true },
+      { type: "EXECUTE_GRID" },
+    ])
+      s = transition(s, action, context);
+    if (s.extraction.draws.some((d) => d.explosions.length)) {
+      expected = s.extraction;
+      break;
+    }
+  }
+  expect(expected).toBeTruthy();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await prepare(page, {
+    force: { wheel_1: "cat_1" },
+    reduced: false,
+    timings: { explosion: 100, previewPrize: 700 },
+    mutate: (c) => {
+      c.seed = seed;
+      for (const values of Object.values(c.slots.payout.table))
+        for (let i = 1; i < values.length; i++) values[i] = 1000000;
+    },
+  });
+  await page.evaluate(() => {
+    window.exploded = 0;
+    window.collectionCount = 0;
+    const seen = new WeakSet();
+    new MutationObserver(() => {
+      for (const el of document.querySelectorAll(".exploding"))
+        if (!seen.has(el)) {
+          seen.add(el);
+          window.exploded++;
+        }
+      window.collectionCount = Math.max(
+        window.collectionCount,
+        document.querySelectorAll(".collected-token").length,
+      );
+    }).observe(document.querySelector("#app"), {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+  });
+  await offer(page);
+  await click(page, "accept");
+  await ready(page, "challenge");
+  await click(page, "success");
+  await page.waitForSelector(".new-maximum.is-visible");
+  const sizes = await page
+    .locator(".new-maximum")
+    .evaluate((node) => [
+      parseFloat(getComputedStyle(node.querySelector("span")).fontSize),
+      parseFloat(getComputedStyle(node.querySelector("strong")).fontSize),
+    ]);
+  expect(sizes[1]).toBeGreaterThan(sizes[0]);
+  await contentFits(page);
+  await page.screenshot({ path: "artifacts/maximum-mobile.png" });
+  await ready(page, "wheel");
+  expect(await page.evaluate(() => window.exploded)).toBe(
+    expected.draws.reduce((n, d) => n + d.explosions.length, 0),
+  );
+  expect(await page.evaluate(() => window.collectionCount)).toBe(
+    expected.draws.reduce((n, d) => n + d.collections.length, 0),
+  );
+  expect(
+    Number((await page.locator("[data-filled]").innerText()).split("/")[0]),
+  ).toBe(expected.tokens.reduce((n, t) => n + t.units, 0));
+});

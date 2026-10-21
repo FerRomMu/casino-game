@@ -1,10 +1,12 @@
-import { indexOfRandom } from './random.js';
+import { indexOfRandom } from "./random.js";
 
 function expand(entries) {
-  return entries.flatMap(entry => Array.from({ length: entry.count }, () => {
-    const { count, ...tile } = entry;
-    return tile;
-  }));
+  return entries.flatMap((entry) =>
+    Array.from({ length: entry.count }, () => {
+      const { count, ...tile } = entry;
+      return tile;
+    }),
+  );
 }
 
 export function createGrid(config, rng) {
@@ -13,43 +15,85 @@ export function createGrid(config, rng) {
     const j = indexOfRandom(i + 1, rng);
     [cells[i], cells[j]] = [cells[j], cells[i]];
   }
-  return { cells, pool: expand(config.replenishments), reserves: expand(config.reserves) };
+  return {
+    cells,
+    pool: expand(config.replenishments),
+    reserves: expand(config.reserves),
+  };
 }
 
+// A blast collects the current board snapshot before any refill. Adjacent effects
+// chain once; corners never wrap and inactive cells never produce rewards.
 export function executeGrid(grid, points, config, rng) {
   const next = structuredClone(grid);
-  const draws = [];
-  const tokens = [];
+  const draws = [],
+    tokens = [];
   let spins = 0;
   for (let p = 0; p < points; p++) {
-    const active = next.cells.flatMap((tile, i) => tile ? [i] : []);
+    const active = next.cells.flatMap((tile, i) => (tile ? [i] : []));
     if (!active.length) break;
     const index = active[indexOfRandom(active.length, rng)];
-    const tile = next.cells[index];
-    next.cells[index] = null;
-    let upgrade = null;
-    if (tile.kind === 'symbol') tokens.push({ symbol: tile.symbol, units: tile.units });
-    else {
-      const effect = config.effects[tile.effect];
-      spins += effect.spins ?? 0;
+    const queue = [index],
+      visited = new Set(),
+      collections = [],
+      explosions = [];
+    for (let q = 0; q < queue.length; q++) {
+      const target = queue[q];
+      if (visited.has(target) || !next.cells[target]) continue;
+      visited.add(target);
+      const tile = next.cells[target];
+      collections.push({ index: target, tile });
+      if (tile.kind === "symbol")
+        tokens.push({ symbol: tile.symbol, units: tile.units });
+      else {
+        const effect = config.effects[tile.effect];
+        spins += effect.spins ?? 0;
+        if (effect.collect === "orthogonal") {
+          explosions.push(target);
+          const row = Math.floor(target / config.columns),
+            col = target % config.columns;
+          if (row > 0) queue.push(target - config.columns);
+          if (row < config.rows - 1) queue.push(target + config.columns);
+          if (col > 0) queue.push(target - 1);
+          if (col < config.columns - 1) queue.push(target + 1);
+        }
+      }
     }
-    // Special inventory swaps with a random lower-ranked tile. Displaced inventory
-    // is preserved in the refill pool, so extraction can eventually fill all reels.
-    if (next.reserves.length) {
+    for (const item of collections) next.cells[item.index] = null;
+    const upgrades = [];
+    for (const item of collections) {
+      if (item.tile.kind !== "symbol" || !next.reserves.length) continue;
       const specialIndex = indexOfRandom(next.reserves.length, rng);
       const special = next.reserves[specialIndex];
-      const candidates = next.cells.flatMap((cell, i) => cell?.kind === 'symbol' && config.ranks[cell.symbol] < config.ranks[special.symbol] ? [i] : []);
+      const candidates = next.cells.flatMap((cell, i) =>
+        cell?.kind === "symbol" &&
+        config.ranks[cell.symbol] < config.ranks[special.symbol]
+          ? [i]
+          : [],
+      );
       if (candidates.length) {
         const target = candidates[indexOfRandom(candidates.length, rng)];
         next.pool.push(next.cells[target]);
         next.cells[target] = special;
         next.reserves.splice(specialIndex, 1);
-        upgrade = { index: target, tile: special };
+        upgrades.push({ index: target, tile: special });
       }
     }
-    const source = next.reserves.length && !next.pool.length ? next.reserves : next.pool;
-    next.cells[index] = source.length ? source.splice(indexOfRandom(source.length, rng), 1)[0] : null;
-    draws.push({ index, tile, replacement: next.cells[index], upgrade });
+    for (const item of collections) {
+      const source =
+        next.reserves.length && !next.pool.length ? next.reserves : next.pool;
+      item.replacement = source.length
+        ? source.splice(indexOfRandom(source.length, rng), 1)[0]
+        : null;
+      next.cells[item.index] = item.replacement;
+    }
+    draws.push({
+      index,
+      tile: collections[0].tile,
+      collections,
+      explosions,
+      upgrades,
+    });
   }
   return { grid: next, draws, tokens, spins };
 }

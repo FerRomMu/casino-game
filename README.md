@@ -28,10 +28,10 @@ La partida se ejecuta en memoria. Cada carga obtiene una semilla nueva del naveg
 - Ruleta con sectores de colores, relieve dorado, luces animadas e iconos por categoría. Símbolos ilustrados en SVG, tipografías locales y máquina con rodillos profundos y columnas doradas.
 - Animaciones de cartas, selección de fichas, vuelos reales hacia el inventario y los rodillos, reemplazos del tablero, fuego y premios. Las fichas recogidas se muestran después de extraerse; los rodillos frenan de a uno.
 - Protección frente a clicks repetidos durante las secuencias. La ayuda se puede abrir durante las animaciones sin reemplazar ni interrumpir la escena en curso.
-- Previsualizaciones del resultado alcanzable más cercano por encima de la media y del máximo alcanzable, sin consumir tiradas.
+- Una única tirada de muestra tras cada recompensa: si aumenta el máximo alcanzable, lo muestra y anuncia el nuevo récord; de lo contrario, muestra una tirada aleatoria. No consume tiradas ni acredita premios. Los umbrales y tamaños del número se configuran en `ui.prizeTiers`.
 - Tercera aparición de progresión: elegir pasar o continuar. Cuarta aparición: pase obligatorio.
 - Primera aparición de la categoría final: acceso directo al tragamonedas, con una tirada por click y actualización del máximo acumulable restante.
-- Diseño adaptable y preferencia `prefers-reduced-motion`.
+- Juego ajustado a `100dvh`, sin scroll de página, con título y sonido dentro del gabinete, fondo texturado e inventario siempre visible. Diseño adaptable y preferencia `prefers-reduced-motion`.
 - Efectos de sonido opcionales, silenciados al iniciar, pantalla completa y reinicio con confirmación. El resultado numérico muestra su premio y conserva el foco del teclado, incluidos sus límites.
 
 ## Configuración
@@ -95,7 +95,7 @@ npx playwright install chromium
 npm run test:ui
 ```
 
-Si existe `/usr/bin/chromium`, se utiliza directamente; `CHROMIUM_PATH` permite indicar otra ruta. El servidor de pruebas se inicia automáticamente. La suite cubre una partida completa con sonido, pesos no uniformes, todos los símbolos ilustrados, ayuda durante el giro, protección frente a dobles clicks, retos numéricos y binarios, rechazos, progresión, rodillos en movimiento, final y reinicio. Revisa desbordes en anchos de 320, 390, 768 y 1280 píxeles. Las trazas y capturas de los fallos quedan en `artifacts/browser-results/`.
+Si existe `/usr/bin/chromium`, se utiliza directamente; `CHROMIUM_PATH` permite indicar otra ruta. El servidor de pruebas se inicia automáticamente. La suite cubre una partida completa con sonido, pesos no uniformes, todos los símbolos ilustrados, ayuda durante el giro, protección frente a dobles clicks, retos numéricos y binarios, rechazos, progresión, rodillos en movimiento, final y reinicio. Revisa desbordes y visibilidad de controles e inventario, incluyendo 320 × 568, 390 × 844, 844 × 390 y 1280 × 720. También comprueba inserciones sobre piedras, explosiones encadenadas y la selección de una única tirada de muestra. Las trazas y capturas de los fallos quedan en `artifacts/browser-results/`.
 
 La simulación escribe `artifacts/simulation.json`, incluyendo cuartiles, mediana, premios, composición final, tiradas utilizadas y comparación con los objetivos configurados. Permite `--content <directorio>` para probar otra configuración sin modificar el código. `--spins` indica la cantidad de finales simulados con máquina completa; cada final utiliza entre el mínimo y máximo de tiradas configurados.
 
@@ -111,10 +111,10 @@ Los datos están marcados como `contentMode: "dummy"`. **Los premios no están c
 - `wildRequiresNatural: true` exige que haya al menos un símbolo natural del tipo representado para que un Wild lo complete. Esta política es configurable. x2 multiplica una sola vez el premio de la línea, independientemente de su cantidad.
 - Cuatro sietes naturales dan el jackpot excepcional. Wild no sustituye un siete para ese jackpot.
 - El mínimo de tres tiradas al entrar al final es una garantía de esta demo; las tiradas acumuladas se limitan a cinco. Ambos límites son configurables.
-- Las cinco fichas de tirada y las cinco fichas de efecto usan efectos de ejemplo configurados en JSON; actualmente ambos entregan una tirada.
+- Cinco fichas de tirada entregan una tirada cada una. Los cinco efectos `bonus` usan `collect: "orthogonal"`: recogen vecinos activos arriba, abajo, izquierda y derecha, sin diagonales ni cruce entre bordes. En esquinas/bordes recogen los vecinos disponibles. Los efectos alcanzados encadenan explosiones, cada casilla se recoge una sola vez por cadena y las reposiciones ocurren al terminarla. No consumen los demás puntos del turno ni entregan una tirada por sí mismos.
 - Las quince fichas especiales reservadas representan veinte unidades de rodillo: algunas fichas especiales entregan dos unidades. Se agregan quince unidades ordinarias al inventario de reposición para alcanzar la composición objetivo de ochenta posiciones. Estas decisiones resuelven diferencias entre las cantidades de la grilla y de los rodillos; requieren validación de producto antes del balance definitivo.
 - Al extraer una ficha se intenta colocar un especial reservado en otra posición aleatoria de menor rango. La ficha desplazada vuelve al inventario de reposición. Se conservan todas las unidades. Los huecos se apagan cuando se agota el inventario disponible, y dejan de participar en los sorteos.
 - La inserción equilibra cada símbolo entre rodillos que todavía tienen capacidad, sin superar sus cuotas objetivo.
-- La categoría de cierre pasa directamente al final, siguiendo el flujo detallado de la spec.
+- La categoría de cierre pasa directamente al final. Sus pesos de prueba son 10 para finale y 30 para cada una de las otras tres categorías (10 % / 30 % / 30 % / 30 %).
 
 Verificación del rediseño: pruebas del dominio, recorridos automatizados en Chromium, revisión de capturas de escritorio y móvil, y build de producción. El balance estadístico sigue siendo provisional.

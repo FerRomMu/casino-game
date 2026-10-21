@@ -35,7 +35,7 @@ try {
     numeric: 0,
     slotSpinning: false,
     wheelSpinning: false,
-    previewMode: "representative",
+    displayStops: null,
     presentation: null,
     gridCells: null,
     collected: [],
@@ -45,7 +45,6 @@ try {
     prizeVisible: false,
     cardLeaving: false,
     sound: config.ui.soundEnabled,
-    inventoryOpen: false,
     probabilitiesOpen: false,
     enter: true,
     motion: (name) =>
@@ -78,18 +77,37 @@ try {
     "request-restart",
   ];
 
+  function fitScene() {
+    const stage = app.querySelector("#stage"),
+      scene = stage?.querySelector(".scene");
+    if (!scene) return;
+    scene.style.scale = "1";
+    const available = stage.clientHeight;
+    // Responsive geometry does most of the sizing; fit long external card text
+    // and short landscape viewports without cutting off actions or adding scroll.
+    const height = Math.max(scene.scrollHeight, scene.offsetHeight);
+    const scale = Math.min(
+      1,
+      (available - 4) / height,
+      stage.clientWidth / scene.scrollWidth,
+    );
+    scene.style.scale = String(scale);
+  }
+  const viewportObserver = new ResizeObserver(fitScene);
+  document.fonts.ready.then(fitScene);
   function render(focusAction = null) {
     const focused = app.contains(document.activeElement)
       ? document.activeElement?.dataset.action
       : null;
-    const inventory = app.querySelector(".composition"),
-      probabilities = app.querySelector(".category-details");
-    if (inventory) local.inventoryOpen = inventory.open;
+    const probabilities = app.querySelector(".category-details");
     if (probabilities) local.probabilitiesOpen = probabilities.open;
     const scene = `${local.presentation ?? state.phase}:${state.wheel}:${state.category?.id ?? ""}`;
     local.enter = scene !== lastScene;
     lastScene = scene;
     app.innerHTML = renderer(state, local);
+    viewportObserver.disconnect();
+    viewportObserver.observe(app.querySelector("#stage"));
+    fitScene();
     app.removeAttribute("aria-busy");
     if (local.busy)
       for (const control of app.querySelectorAll("button[data-action]"))
@@ -256,15 +274,34 @@ try {
     chosen?.classList.add("chosen");
     play("collect");
     await wait("gridStop");
-    await fly(draw.tile, chosen, app.querySelector("#collected"));
-    local.collected.push(draw.tile);
-    local.upgradedCells = [];
-    if (draw.upgrade) {
-      local.gridCells[draw.upgrade.index] = draw.upgrade.tile;
-      local.upgradedCells.push(draw.upgrade.index);
+    for (const index of draw.explosions) {
+      const cell = tiles[index];
+      cell?.classList.add("exploding");
+      burst(cell, true);
+      play("fire");
+      await wait("explosion");
     }
-    local.gridCells[draw.index] = draw.replacement;
-    if (draw.replacement) local.upgradedCells.push(draw.index);
+    for (const item of draw.collections)
+      tiles[item.index]?.classList.add("chosen");
+    await Promise.all(
+      draw.collections.map(async (item) => {
+        await fly(
+          item.tile,
+          tiles[item.index],
+          app.querySelector("#collected"),
+        );
+      }),
+    );
+    local.collected.push(...draw.collections.map((item) => item.tile));
+    local.upgradedCells = [];
+    for (const upgrade of draw.upgrades) {
+      local.gridCells[upgrade.index] = upgrade.tile;
+      local.upgradedCells.push(upgrade.index);
+    }
+    for (const item of draw.collections) {
+      local.gridCells[item.index] = item.replacement;
+      if (item.replacement) local.upgradedCells.push(item.index);
+    }
     render();
     await wait("replacement");
   }
@@ -303,13 +340,21 @@ try {
     render();
     await wait("reward");
     local.displayReels = structuredClone(state.reels);
+    local.displayStops = local.displayReels.map((reel) =>
+      Math.max(0, reel.indexOf(config.slots.stone)),
+    );
     send({ type: "INSERT_TOKENS" });
     await wait("insertion");
     for (const insertion of state.insertion) {
+      local.displayStops[insertion.reel] = insertion.position;
+      render();
+      await wait("insertToken");
       const from = [...app.querySelectorAll(".queue-token")].find((node) =>
         node.querySelector(`[data-symbol="${insertion.symbol}"]`),
       );
-      const target = app.querySelector(`[data-reel="${insertion.reel}"]`);
+      const target = app.querySelector(
+        `[data-reel="${insertion.reel}"] .payline-symbol`,
+      );
       await fly(
         { kind: "symbol", symbol: insertion.symbol, units: 1 },
         from,
@@ -322,23 +367,18 @@ try {
       await wait("insertToken");
     }
     local.displayReels = null;
-    local.previewMode = "representative";
+    local.displayStops = null;
     local.slotSpinning = true;
     local.prizeVisible = false;
     send({ type: "SHOW_PREVIEW" });
     await revealReels("previewSpin");
-    await countPrize(state.preview.representative.payout);
+    if (state.newMaximum) {
+      play("win");
+      burst(app.querySelector(".prize-board"), true);
+      announce("ui.previewMax");
+    }
+    await countPrize(state.previewOutcome.payout);
     await wait("previewPrize");
-    local.previewMode = "maximum";
-    local.slotSpinning = true;
-    local.prizeVisible = false;
-    render();
-    await revealReels("previewSpin");
-    play("win");
-    burst(app.querySelector(".prize-board"), true);
-    await countPrize(state.preview.maximum.payout);
-    await wait("previewPrize");
-    local.previewMode = "representative";
     local.prizeVisible = false;
     local.collected = [];
     send({ type: "END_PREVIEW" });
@@ -384,7 +424,7 @@ try {
       numeric: 0,
       slotSpinning: false,
       wheelSpinning: false,
-      previewMode: "representative",
+      displayStops: null,
       presentation: null,
       gridCells: null,
       collected: [],

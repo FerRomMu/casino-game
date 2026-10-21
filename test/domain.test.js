@@ -173,3 +173,80 @@ test('missing content is visible in development and empty in production',()=>{
   assert.equal(translator({})('ns.missing'),'MISSING:ns.missing');
   assert.equal(translator({},{production:true})('ns.missing'),'');
 });
+
+test('five reserved effects collect orthogonal neighbors, with bounds and no diagonals', () => {
+  assert.equal(config.grid.initial.filter(t => t.effect === 'bonus').reduce((n,t) => n+t.count,0),5);
+  const symbol = {kind:'symbol',symbol:'lemon',units:1};
+  for (const [index, expected] of [[24,[17,31,23,25]], [0,[7,1]], [6,[13,5]], [48,[41,47]], [21,[14,28,22]]]) {
+    const cells = Array.from({length:49},()=>({...symbol}));
+    cells[index] = {kind:'effect',effect:'bonus'};
+    const grid = {cells,pool:[],reserves:[]};
+    const before = structuredClone(grid);
+    const result = executeGrid(grid,1,config.grid,()=> (index+.01)/49);
+    assert.deepEqual(result.draws[0].collections.map(c=>c.index),[index,...expected]);
+    assert.equal(result.tokens.length,expected.length);
+    assert.equal(result.spins,0);
+    assert.deepEqual(grid,before);
+  }
+});
+
+test('blast chains collect each cell once, ignore dark cells and refill only after collection', () => {
+  const cells = Array(49).fill(null);
+  cells[24]={kind:'effect',effect:'bonus'};
+  cells[25]={kind:'effect',effect:'bonus'};
+  cells[17]={kind:'symbol',symbol:'lemon',units:2};
+  cells[18]={kind:'symbol',symbol:'orange',units:1};
+  cells[31]={kind:'effect',effect:'spin'};
+  const result=executeGrid({cells,pool:[{kind:'symbol',symbol:'cherry',units:1}],reserves:[]},2,config.grid,()=>.4);
+  assert.deepEqual(result.draws[0].explosions,[24,25]);
+  const collected=result.draws[0].collections.map(c=>c.index);
+  assert.equal(new Set(collected).size,5);
+  assert.equal(result.draws.length,2); // The blast never consumes the second point.
+  assert.equal(result.spins,1);
+  assert.deepEqual(result.tokens.map(t=>[t.symbol,t.units]),[['lemon',2],['orange',1],['cherry',1]]);
+  assert.ok(result.grid.cells.every(t=>!t));
+});
+
+test('every insertion replaces an actual stone and preserves all previously installed symbols', () => {
+  for(let seed=1;seed<=20;seed++) {
+    const rng=seededRandom(seed);
+    let reels=createReels(config.slots), grid=createGrid(config.grid,rng);
+    while(grid.cells.some(Boolean)) {
+      const extraction=executeGrid(grid,3,config.grid,rng);
+      const inserted=insertTokens(reels,extraction.tokens,config.slots,rng);
+      const playback=structuredClone(reels);
+      for(const event of inserted.inserted) {
+        assert.equal(playback[event.reel][event.position],config.slots.stone);
+        playback[event.reel][event.position]=event.symbol;
+      }
+      assert.deepEqual(playback,inserted.reels);
+      for(let r=0;r<reels.length;r++) for(let p=0;p<reels[r].length;p++)
+        if(reels[r][p]!==config.slots.stone) assert.equal(inserted.reels[r][p],reels[r][p]);
+      reels=inserted.reels; grid=extraction.grid;
+    }
+  }
+});
+
+test('preview celebrates only a new maximum; otherwise samples a real uncredited spin', () => {
+  const {state,context}=setup();
+  state.phase='machine'; state.reels[0][0]='lemon'; state.spins=4;
+  let preview=transition(state,{type:'SHOW_PREVIEW'},context);
+  assert.equal(preview.newMaximum,true);
+  assert.equal(preview.previewOutcome.payout,config.slots.payout.table.lemon[1]);
+  assert.equal(preview.maximumSeen,preview.previewOutcome.payout);
+  preview.phase='machine';
+  const random=transition(preview,{type:'SHOW_PREVIEW'},{...context,rng:()=>.999});
+  assert.equal(random.newMaximum,false);
+  assert.equal(random.previewOutcome.payout,0);
+  assert.deepEqual(random.previewOutcome.stops,[19,19,19,19]);
+  assert.equal(random.spins,4); assert.equal(random.total,0); assert.equal(random.history.length,0);
+  random.phase='machine'; random.reels[1][0]='lemon';
+  const higher=transition(random,{type:'SHOW_PREVIEW'},context);
+  assert.equal(higher.newMaximum,true);
+  assert.equal(higher.previewOutcome.payout,config.slots.payout.table.lemon[2]);
+});
+
+test('advanced demo wheel reserves ten percent for the finale', () => {
+  const sectors=wheelSectors(config.wheels.wheel_2.categories);
+  for(const s of sectors) assert.ok(Math.abs(s.probability-(s.behavior==='finale'?.1:.3))<1e-12);
+});
