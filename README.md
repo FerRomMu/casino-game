@@ -2,6 +2,10 @@
 
 Webapp local, sin backend ni dependencias de ejecución. Requiere **Node.js 22 o posterior**.
 
+**Demo online:** https://ferrommu.github.io/casino-game/
+
+GitHub Pages publica automáticamente el build de producción después de cada push a `master`, siempre que pasen las pruebas del dominio. El workflow también permite un despliegue manual desde Actions. Las partidas siguen ejecutándose íntegramente en el navegador.
+
 ## Probar la demo
 
 ```bash
