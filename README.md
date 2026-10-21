@@ -14,18 +14,25 @@ Abrir **http://localhost:5173**. No hace falta ejecutar `npm install`.
 
 Si ya tenés el repo clonado, ejecutá `git pull` antes de `npm run dev`.
 
-La partida se ejecuta en memoria. Recargar la página reinicia la partida y la semilla de ejemplo. El servidor sólo entrega archivos estáticos; no implementa lógica del juego ni una API.
+La partida se ejecuta en memoria. Cada carga obtiene una semilla nueva del navegador. Para reproducir una partida, configurar `ui.randomSeed: false`: se utiliza `seed` del mismo JSON. El servidor sólo entrega archivos estáticos; no implementa lógica del juego ni una API.
+
+![Interfaz de escritorio](docs/ui-desktop.png)
+
+[Ver tragamonedas](docs/ui-slots.png) · [Ver versión móvil](docs/ui-mobile.png)
 
 ## Qué se puede probar
 
 - Dos ruletas con sectores ponderados: el tamaño visual y la selección usan las mismas probabilidades normalizadas.
 - Selección de carta boca abajo, aceptación o rechazo sin penalización, retos binarios y resultados numéricos.
 - Conversión automática de puntos en extracciones del tablero 7 × 7, incorporación de especiales y reemplazo de piedras en cuatro rodillos de veinte posiciones.
-- Animaciones de ruleta, cartas, selección de fichas, fuego y tragamonedas; bloqueo de acciones durante las secuencias.
+- Ruleta con sectores de colores, relieve dorado, luces animadas e iconos por categoría. Símbolos ilustrados en SVG, tipografías locales y máquina con rodillos profundos y columnas doradas.
+- Animaciones de cartas, selección de fichas, vuelos reales hacia el inventario y los rodillos, reemplazos del tablero, fuego y premios. Las fichas recogidas se muestran después de extraerse; los rodillos frenan de a uno.
+- Protección frente a clicks repetidos durante las secuencias. La ayuda se puede abrir durante las animaciones sin reemplazar ni interrumpir la escena en curso.
 - Previsualizaciones del resultado alcanzable más cercano por encima de la media y del máximo alcanzable, sin consumir tiradas.
 - Tercera aparición de progresión: elegir pasar o continuar. Cuarta aparición: pase obligatorio.
 - Primera aparición de la categoría final: acceso directo al tragamonedas, con una tirada por click y actualización del máximo acumulable restante.
 - Diseño adaptable y preferencia `prefers-reduced-motion`.
+- Efectos de sonido opcionales, silenciados al iniciar, pantalla completa y reinicio con confirmación. El resultado numérico muestra su premio y conserva el foco del teclado, incluidos sus límites.
 
 ## Configuración
 
@@ -52,15 +59,20 @@ Los mazos se agotan sin repetir cartas; al agotarse una categoría, se habilita 
 
 Las claves ausentes se muestran como `MISSING:<key>` en desarrollo y como texto vacío en la distribución de producción.
 
+Los campos `art` de símbolos, efectos y categorías referencian ilustraciones de `assets/casino.svg`. Si un símbolo o efecto no declara ilustración, utiliza su `icon_key` como alternativa. Los tiempos de las secuencias, cantidad de luces, preferencia inicial de sonido y umbral de efectos para fichas especiales están en `ui`. Las fuentes y las ilustraciones se sirven localmente y se incluyen en el build: la demo no requiere servicios externos para dibujar la interfaz.
+
 ## Separación de responsabilidades
 
 ```text
 src/domain/      Reglas, estado, pesos, azar inyectado, inventario y pagos.
 src/ui/app.js   Orquestación de acciones y secuencias de animación.
 src/ui/render.js Vista: transforma el estado en interfaz.
+src/ui/audio.js Efectos de sonido opcionales, fuera del dominio.
+assets/         Ilustraciones y tipografías locales con sus licencias.
 content/        Datos de juego y textos externos.
 scripts/        Servidor estático, build y simulación por consola.
 test/           Invariantes del dominio.
+e2e/            Recorridos reales en Chromium con Playwright.
 ```
 
 El dominio no importa DOM, navegador, temporizadores, archivos ni strings. `transition(state, action, { config, decks, rng })` devuelve un estado nuevo. El consumidor controla la fuente de azar; la UI y el simulador usan el mismo dominio. Cada estado representa un participante, con su propio contador y partida; la demo presenta un participante por vez.
@@ -74,6 +86,16 @@ npm test
 npm run simulate -- --games 1000 --spins 100000 --seed 20261021
 npm run build
 ```
+
+Para las pruebas de navegador sí se instalan las dependencias de desarrollo:
+
+```bash
+npm ci
+npx playwright install chromium
+npm run test:ui
+```
+
+Si existe `/usr/bin/chromium`, se utiliza directamente; `CHROMIUM_PATH` permite indicar otra ruta. El servidor de pruebas se inicia automáticamente. La suite cubre una partida completa con sonido, pesos no uniformes, todos los símbolos ilustrados, ayuda durante el giro, protección frente a dobles clicks, retos numéricos y binarios, rechazos, progresión, rodillos en movimiento, final y reinicio. Revisa desbordes en anchos de 320, 390, 768 y 1280 píxeles. Las trazas y capturas de los fallos quedan en `artifacts/browser-results/`.
 
 La simulación escribe `artifacts/simulation.json`, incluyendo cuartiles, mediana, premios, composición final, tiradas utilizadas y comparación con los objetivos configurados. Permite `--content <directorio>` para probar otra configuración sin modificar el código. `--spins` indica la cantidad de finales simulados con máquina completa; cada final utiliza entre el mínimo y máximo de tiradas configurados.
 
@@ -95,4 +117,4 @@ Los datos están marcados como `contentMode: "dummy"`. **Los premios no están c
 - La inserción equilibra cada símbolo entre rodillos que todavía tienen capacidad, sin superar sus cuotas objetivo.
 - La categoría de cierre pasa directamente al final, siguiendo el flujo detallado de la spec.
 
-Verificación inicial: once pruebas del dominio aprobadas y simulación de cien partidas más cien mil finales con máquina completa. La comprobación visual automatizada del navegador no se pudo completar en el entorno de desarrollo por restricciones de permisos; queda pendiente la revisión visual al ejecutar la demo localmente.
+Verificación del rediseño: pruebas del dominio, recorridos automatizados en Chromium, revisión de capturas de escritorio y móvil, y build de producción. El balance estadístico sigue siendo provisional.

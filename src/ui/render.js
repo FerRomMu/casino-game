@@ -1,104 +1,220 @@
-import { wheelSectors } from '../domain/random.js';
+import { wheelSectors } from "../domain/random.js";
 
-export const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+export const escapeHtml = (value) =>
+  String(value ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
+const sprite = new URL("../../assets/casino.svg", import.meta.url).href;
 
 export function createRenderer(config, t) {
-  const e = escapeHtml;
-  const text = key => e(t(key));
-  const number = value => new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(value);
-  const money = value => `$ ${number(value)}`;
-  const symbol = id => `<span class="symbol symbol-${e(id)}" title="${text(config.symbols[id].name_key)}">${text(config.symbols[id].icon_key)}</span>`;
-  const button = (action, key, className = 'primary', extra = '') => `<button class="${className}" data-action="${action}" ${extra}>${text(key)}</button>`;
+  const e = escapeHtml,
+    text = (key) => e(t(key));
+  const number = (n) =>
+    new Intl.NumberFormat(config.ui.locale, {
+      maximumFractionDigits: 0,
+    }).format(n);
+  const money = (n) =>
+    new Intl.NumberFormat(config.ui.locale, {
+      style: "currency",
+      currency: config.ui.currency,
+      maximumFractionDigits: 0,
+    }).format(n);
+  const art = (id, cls = "") =>
+    `<svg class="art ${cls}" viewBox="0 0 100 100" aria-hidden="true"><use href="${sprite}#${e(id)}"/></svg>`;
+  const icon = (id) =>
+    `<svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="${sprite}#${e(id)}"/></svg>`;
+  const symbol = (id) =>
+    `<span class="symbol symbol-${e(id)}" data-symbol="${e(id)}" title="${text(config.symbols[id].name_key)}">${config.symbols[id].art ? art(config.symbols[id].art) : text(config.symbols[id].icon_key)}</span>`;
+  const button = (action, key, cls = "primary", attrs = "") =>
+    `<button type="button" class="${cls}" data-action="${action}" ${attrs}><span>${text(key)}</span></button>`;
+  const bulbs = (n = 30, cls = "") =>
+    `<div class="marquee-bulbs ${cls}" aria-hidden="true">${Array.from({ length: n }, (_, i) => `<i style="--i:${i}"></i>`).join("")}</div>`;
+  const sparks = () =>
+    `<div class="spark-particles" aria-hidden="true">${Array.from({ length: config.ui.particleCount }, (_, i) => `<i style="--i:${i};--x:${(i * 37 + 11) % 100}%;--delay:${(i % 7) * -0.8}s"></i>`).join("")}</div>`;
+  const phaseIndex = (s) =>
+    ["wheel", "category", "cards", "progression", "decision"].includes(s.phase)
+      ? 0
+      : ["offer", "challenge", "reward"].includes(s.phase)
+        ? 1
+        : ["grid", "machine", "preview"].includes(s.phase)
+          ? 2
+          : 3;
 
-  function wheelSVG(state, local) {
+  function wheelMarkup(state, local) {
     const sectors = wheelSectors(config.wheels[state.wheel].categories);
-    const coord = (angle, radius) => [200 + Math.sin(angle * Math.PI / 180) * radius, 200 - Math.cos(angle * Math.PI / 180) * radius];
-    const segments = sectors.filter(s => s.probability > 0).map(s => {
-      const a = s.start * 360, b = s.end * 360;
-      const p1 = coord(a, 185), p2 = coord(b, 185);
-      const mid = (a + b) / 2;
-      const pos = coord(mid, 123);
-      const path = s.probability >= 1 - 1e-10 ? `<circle cx="200" cy="200" r="185" fill="${e(s.color)}"/>` : `<path d="M 200 200 L ${p1.join(' ')} A 185 185 0 ${b - a > 180 ? 1 : 0} 1 ${p2.join(' ')} Z" fill="${e(s.color)}" stroke="#20132d" stroke-width="2"/>`;
-      const label = s.probability >= 0.055 ? `<text x="${pos[0]}" y="${pos[1]}" transform="rotate(${mid > 180 ? mid - 270 : mid - 90},${pos.join(',')})" text-anchor="middle" dominant-baseline="middle">${text(s.name_key)}</text>` : '';
-      return `<g><title>${text(s.name_key)} · ${number(s.probability * 100)}%</title>${path}${label}</g>`;
-    }).join('');
-    const bulbs = Array.from({ length: 48 }, (_, i) => { const p = coord(i / 48 * 360, 195); return `<circle class="bulb" cx="${p[0]}" cy="${p[1]}" r="2.3" style="animation-delay:${i % 3 * .3}s"/>`; }).join('');
-    return `<div class="wheel-wrap ${local.busy ? 'is-spinning' : ''}"><div class="wheel-pointer"></div><svg class="wheel-rim" viewBox="0 0 400 400" aria-hidden="true"><circle cx="200" cy="200" r="198" fill="#362144" stroke="#72503d" stroke-width="1"/>${bulbs}</svg><svg id="wheel" class="wheel" viewBox="0 0 400 400" role="img" aria-label="${text('ui.probabilities')}" style="transform:rotate(${local.rotation}deg);transition-duration:${local.motion('wheel')}ms">${segments}</svg><button class="wheel-hub" data-action="spin" aria-label="${text('ui.spin')}" ${local.busy ? 'disabled' : ''}>↗</button></div>`;
+    const polar = (a, r) => [
+      300 + Math.sin((a * Math.PI) / 180) * r,
+      300 - Math.cos((a * Math.PI) / 180) * r,
+    ];
+    const segments = sectors
+      .filter((s) => s.probability > 0)
+      .map((s, i) => {
+        const a = s.start * 360,
+          b = s.end * 360,
+          mid = (a + b) / 2;
+        const start = polar(a, 245),
+          end = polar(b, 245),
+          label = polar(mid, 175),
+          mark = polar(mid, 216),
+          rate = polar(mid, 141);
+        const rotation = mid > 90 && mid < 270 ? mid + 180 : mid;
+        const shape =
+          s.probability >= 1 - 1e-10
+            ? '<circle cx="300" cy="300" r="245"'
+            : `<path d="M300 300L${start.join(" ")}A245 245 0 ${b - a > 180 ? 1 : 0} 1 ${end.join(" ")}Z"`;
+        return `<g data-sector="${e(s.id)}" data-probability="${s.probability}" data-start="${s.start}" data-end="${s.end}"><defs><radialGradient id="sector-${i}" gradientUnits="userSpaceOnUse" cx="300" cy="300" r="245"><stop stop-color="#26083c"/><stop offset=".5" stop-color="${e(s.color)}"/><stop offset="1" stop-color="${e(s.color)}"/></radialGradient></defs>${shape} fill="url(#sector-${i})" stroke="#ffdc7b" stroke-width="2"/>${shape} fill="url(#wheel-sheen)"/><title>${text(s.name_key)} · ${number(s.probability * 100)}%</title>${s.probability >= 0.065 ? `<use href="${sprite}#${e(s.art)}" x="${mark[0] - 18}" y="${mark[1] - 18}" width="36" height="36" transform="rotate(${rotation},${mark.join(",")})"/>` : ""}${s.probability >= 0.045 ? `<text class="sector-name" x="${label[0]}" y="${label[1]}" transform="rotate(${rotation},${label.join(",")})" text-anchor="middle" dominant-baseline="middle" style="font-size:${t(s.name_key).length > 16 ? 15 : 18}px">${text(s.name_key)}</text><text class="sector-rate" x="${rate[0]}" y="${rate[1]}" transform="rotate(${rotation},${rate.join(",")})" text-anchor="middle">${number(s.probability * 100)}%</text>` : ""}</g>`;
+      })
+      .join("");
+    const lights = Array.from({ length: config.ui.wheelBulbs }, (_, i) => {
+      const p = polar((i / config.ui.wheelBulbs) * 360, 278);
+      return `<circle class="wheel-bulb" cx="${p[0]}" cy="${p[1]}" r="4" style="--i:${i}"/>`;
+    }).join("");
+    return `<div class="wheel-wrap ${local.wheelSpinning ? "is-spinning" : ""}"><div class="wheel-aura"></div><div class="wheel-pedestal"></div><svg class="wheel-rim" viewBox="0 0 600 600" aria-hidden="true"><defs><linearGradient id="rim-gold" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#fff6c3"/><stop offset=".18" stop-color="#f9bf42"/><stop offset=".4" stop-color="#9b4914"/><stop offset=".55" stop-color="#ffe9a0"/><stop offset=".75" stop-color="#bd690b"/><stop offset="1" stop-color="#fff0b5"/></linearGradient><radialGradient id="rim-shade"><stop offset=".7" stop-color="#36115c"/><stop offset="1" stop-color="#0c021a"/></radialGradient><filter id="bulb-glow"><feGaussianBlur stdDeviation="2.8"/></filter></defs><circle cx="300" cy="309" r="290" fill="#080312"/><circle cx="300" cy="300" r="291" fill="url(#rim-gold)"/><circle cx="300" cy="300" r="283" fill="url(#rim-shade)" stroke="#693312" stroke-width="2"/><circle cx="300" cy="300" r="270" fill="none" stroke="#b36f1c"/><circle cx="300" cy="300" r="260" fill="url(#rim-gold)"/><circle cx="300" cy="300" r="250" fill="#381137"/><g opacity=".7" filter="url(#bulb-glow)">${lights}</g>${lights}</svg><svg id="wheel" class="wheel-disc" viewBox="0 0 600 600" role="img" aria-label="${text("ui.probabilities")}" style="transform:rotate(${local.rotation}deg);--spin-duration:${local.motion("wheel")}ms"><defs><radialGradient id="wheel-sheen" gradientUnits="userSpaceOnUse" cx="300" cy="300" r="245"><stop stop-color="#000" stop-opacity=".1"/><stop offset=".66" stop-color="#fff" stop-opacity="0"/><stop offset=".87" stop-color="#fff" stop-opacity=".2"/><stop offset="1" stop-color="#13002e" stop-opacity=".5"/></radialGradient></defs>${segments}<circle cx="300" cy="300" r="241" fill="none" stroke="#ffeac0" opacity=".7"/></svg><div class="wheel-pointer" aria-hidden="true"><span></span></div><button type="button" class="wheel-hub" data-action="spin" aria-label="${text("ui.spin")}" ${local.busy ? "disabled" : ""}><span class="hub-arrow">↻</span><span>${text("ui.spinShort")}</span></button></div>`;
   }
 
-  function wheelScene(state, local) {
-    const label = config.wheels[state.wheel].label_key;
-    return `<section class="wheel-scene scene"><div class="hero-copy"><div class="eyebrow"><span class="live-dot"></span>${text('app.eyebrow')}</div><h1>${text('app.subtitle')}</h1><p>${text('ui.spinHint')}</p>${button('spin', 'ui.spin', 'primary spin-button', local.busy ? 'disabled' : '')}<div class="current-round"><span>↗</span><div><small>${text('ui.stage')}</small><strong>${text(label)}</strong></div></div></div><div class="wheel-area"><span class="orbit orbit-a"></span><span class="orbit orbit-b"></span>${wheelSVG(state, local)}<div class="wheel-caption"><span class="sparkle">✦</span>${text(label)}<span class="sparkle">✦</span></div></div></section><div class="category-strip">${wheelSectors(config.wheels[state.wheel].categories).filter(c => c.weight > 0).map(c => `<div class="category-pill"><i style="--category:${e(c.color)}"></i><span>${text(c.name_key)}</span><b>${number(c.probability * 100)}%</b></div>`).join('')}</div>`;
+  function wheelScene(s, l) {
+    return `<section class="scene wheel-scene ${l.enter ? "scene-enter" : ""}"><div class="scene-heading"><span class="eyebrow">${text("app.eyebrow")}</span><h1>${text("app.subtitle")}</h1><p>${text("ui.spinHint")}</p></div><div class="wheel-theater"><div class="floating-symbol floating-a">${art("cherry")}</div><div class="floating-symbol floating-b">${art("diamond")}</div><div class="floating-coin coin-a">${art("coin")}</div><div class="floating-coin coin-b">${art("coin")}</div>${wheelMarkup(s, l)}</div><div class="wheel-actions">${button("spin", l.wheelSpinning ? "ui.spinning" : "ui.spin", "primary spin-button", l.busy ? "disabled" : "")}<span class="click-hint"><i></i>${text(l.wheelSpinning ? "ui.locked" : "ui.ready")}</span></div><details class="category-details" ${l.probabilitiesOpen ? "open" : ""}><summary>${text("ui.probabilities")}<span>⌄</span></summary><div class="category-list">${wheelSectors(
+      config.wheels[s.wheel].categories,
+    )
+      .map(
+        (c) =>
+          `<div class="category-pill" style="--category:${e(c.color)}">${art(c.art)}<span>${text(c.name_key)}</span><b>${number(c.probability * 100)}%</b></div>`,
+      )
+      .join("")}</div></details></section>`;
   }
 
-  function categoryScene(state) {
-    return `<section class="scene category-reveal" style="--category:${e(state.category.color)}"><div class="category-bloom"></div><span class="eyebrow">${text(config.wheels[state.wheel].label_key)}</span><h1>${text(state.category.name_key)}</h1><p>${text(state.category.description_key)}</p></section>`;
+  function categoryScene(s, l) {
+    return `<section class="scene category-reveal ${l.enter ? "scene-enter" : ""}" style="--category:${e(s.category.color)}"><div class="category-explosion"></div>${sparks()}<span class="eyebrow">${text(config.wheels[s.wheel].label_key)}</span><div class="category-medallion">${art(s.category.art)}</div><h1>${text(s.category.name_key)}</h1><p>${text(s.category.description_key)}</p></section>`;
   }
 
-  function cardsScene(state) {
-    return `<section class="scene cards-scene"><span class="eyebrow" style="color:${e(state.category.color)}">${text(state.category.name_key)}</span><h1>${text('ui.chooseCard')}</h1><p>${text('ui.cardHint')}</p><div class="card-fan">${Array.from({ length: config.ui.cardsToDeal }, (_, i) => `<button class="card-back" data-action="pick" style="--card-index:${i}" aria-label="${text('ui.chooseCard')} ${i + 1}"><span class="card-corner">✦</span><span class="card-orbit">✦</span><span class="card-brand">${text('app.title')}</span><span class="card-bottom">${text('ui.deck')}</span></button>`).join('')}</div></section>`;
+  function cardsScene(s, l) {
+    return `<section class="scene cards-scene ${l.enter ? "scene-enter" : ""}"><div class="scene-heading"><span class="eyebrow category-badge" style="--category:${e(s.category.color)}">${art(s.category.art)}${text(s.category.name_key)}</span><h1>${text("ui.chooseCard")}</h1><p>${text("ui.cardHint")}</p></div><div class="card-fan" style="--cards:${config.ui.cardsToDeal}">${Array.from({ length: config.ui.cardsToDeal }, (_, i) => `<button type="button" class="card-back" data-action="pick" data-card-index="${i}" style="--card-index:${i};--card-center:${(config.ui.cardsToDeal - 1) / 2}" aria-label="${text("ui.chooseCard")} ${i + 1}" ${l.busy ? "disabled" : ""}><span class="card-corner">✦</span><span class="card-corner bottom-corner">✦</span><span class="card-orbit">${art("wild")}</span><strong class="card-brand">${text("app.title")}</strong><span class="card-line"></span><span class="card-bottom">${text("ui.deck")}</span></button>`).join("")}</div><p class="select-hint"><span>✦</span>${text("ui.selectHint")}<span>✦</span></p></section>`;
   }
 
-  function challengeScene(state, local) {
-    const active = state.phase === 'challenge';
-    const card = state.card;
-    return `<section class="scene challenge-scene"><div class="challenge-card"><div class="card-topline"><span>${text(state.category.name_key)}</span><span>✦</span></div><span class="eyebrow">${text('ui.challenge')}</span><h2>${text(card.text_key)}</h2><div class="reward-tags"><span>${text('ui.successReward')} <b>+${number(card.reward.success)}</b></span><span>${text('ui.failureReward')} <b>+${number(card.reward.failure)}</b></span></div>${active && card.resolution === 'numeric' ? `<p class="numeric-hint">${text('ui.numericHint')}</p><div class="numeric-stepper"><button data-action="less" aria-label="${text('ui.less')}" ${local.numeric <= 0 ? 'disabled' : ''}>−</button><output>${local.numeric}<span> / ${card.maximum}</span></output><button data-action="more" aria-label="${text('ui.more')}" ${local.numeric >= card.maximum ? 'disabled' : ''}>+</button></div>` : ''}<div class="actions">${!active ? button('reject','ui.reject','secondary') + button('accept','ui.accept') : card.resolution === 'numeric' ? button('reject','ui.cancel','secondary') + button('numeric','ui.result') : button('fail','ui.fail','secondary') + button('success','ui.complete')}</div>${active && card.resolution !== 'numeric' ? button('reject','ui.cancel','text-button') : ''}</div></section>`;
+  function challengeScene(s, l) {
+    const active = s.phase === "challenge",
+      c = s.card,
+      numeric = c.resolution === "numeric";
+    const low = numeric ? c.reward.byResult[0] : c.reward.failure,
+      high = numeric ? c.reward.byResult[c.maximum] : c.reward.success;
+    return `<section class="scene challenge-scene ${l.enter ? "scene-enter" : ""}"><div class="challenge-card ${l.cardLeaving ? "card-leaving" : ""}" style="--category:${e(s.category.color)}"><div class="card-topline"><span class="category-badge">${art(s.category.art)}${text(s.category.name_key)}</span><span class="challenge-mark">✦</span></div><span class="eyebrow">${text(active ? "ui.challengeActive" : "ui.challenge")}</span><h1>${text(c.text_key)}</h1><div class="reward-tags"><div>${art("coin")}<span>${text("ui.successReward")}<b>+${number(high)} <small>${text("ui.points")}</small></b></span></div><div>${art("coin")}<span>${text("ui.failureReward")}<b>+${number(low)} <small>${text("ui.points")}</small></b></span></div></div>${active && numeric ? `<div class="numeric-control"><p>${text("ui.numericHint")}</p><div class="numeric-stepper"><button type="button" data-action="less" aria-label="${text("ui.less")}" ${l.numeric <= 0 ? "disabled" : ""}>−</button><output aria-live="polite" data-numeric-result>${l.numeric}<span> / ${c.maximum}</span></output><button type="button" data-action="more" aria-label="${text("ui.more")}" ${l.numeric >= c.maximum ? "disabled" : ""}>+</button></div><span class="numeric-reward">+${number(c.reward.byResult[l.numeric])} ${text("ui.points")}</span></div>` : ""}<div class="actions">${!active ? button("reject", "ui.reject", "secondary") + button("accept", "ui.accept", "primary green-button") : numeric ? button("reject", "ui.cancel", "secondary") + button("numeric", "ui.result", "primary green-button") : button("fail", "ui.fail", "secondary") + button("success", "ui.complete", "primary green-button")}</div>${active && !numeric ? button("reject", "ui.cancel", "text-button") : ""}</div></section>`;
   }
 
   function tileContent(tile) {
-    if (!tile) return `<span class="empty-cell" aria-label="${text('ui.empty')}"></span>`;
-    if (tile.kind === 'symbol') return `${symbol(tile.symbol)}${tile.units > 1 ? `<b class="tile-units">×${tile.units}</b>` : ''}`;
-    return `<span class="effect-symbol" title="${text(config.grid.effects[tile.effect].name_key)}">${text(config.grid.effects[tile.effect].icon_key)}</span>`;
+    if (!tile)
+      return `<span class="empty-cell" aria-label="${text("ui.empty")}">·</span>`;
+    if (tile.kind === "symbol")
+      return `${symbol(tile.symbol)}${tile.units > 1 ? `<b class="tile-units">×${tile.units}</b>` : ""}`;
+    const effect = config.grid.effects[tile.effect];
+    return `<span class="effect-symbol" title="${text(effect.name_key)}">${effect.art ? art(effect.art) : text(effect.icon_key)}</span>`;
   }
 
-  function gridScene(state, local) {
-    const cells = local.gridBefore ?? state.grid.cells;
-    return `<section class="scene grid-scene"><span class="eyebrow">${text('ui.collecting')}</span><h1>${text('ui.grid')}</h1><p>${text('ui.gridHint')}</p><div class="grid-layout"><div class="tile-grid" style="--columns:${config.grid.columns}">${cells.map((tile, i) => `<div class="tile ${!tile ? 'off' : ''}" data-cell="${i}">${tileContent(tile)}</div>`).join('')}</div><div class="collected-tray"><span class="eyebrow">${text('ui.machine')}</span><div id="collected">${state.extraction?.tokens.map(tile => `<div class="collected-token">${tileContent({kind:'symbol',...tile})}</div>`).join('') ?? ''}</div></div></div></section>`;
+  function gridScene(s, l) {
+    const cells = l.gridCells ?? s.grid.cells,
+      collected = l.collected ?? [];
+    return `<section class="scene grid-scene ${l.enter ? "scene-enter" : ""}"><div class="scene-heading"><span class="eyebrow">${text("ui.collecting")}</span><h1>${text("ui.grid")}</h1><p>${text("ui.gridHint")}</p></div><div class="grid-layout"><div class="board-cabinet">${bulbs(18, "board-top")}<div class="tile-grid" style="--columns:${config.grid.columns}">${cells.map((tile, i) => `<div class="tile ${!tile ? "off" : ""} ${l.upgradedCells?.includes(i) ? "upgraded" : ""}" data-cell="${i}">${tileContent(tile)}</div>`).join("")}</div>${bulbs(18, "board-bottom")}<div class="board-counter">${text("ui.draw")} <b>${Math.min(l.drawIndex + 1, s.extraction?.draws.length ?? 0)} / ${s.extraction?.draws.length ?? 0}</b></div></div><div class="collected-tray"><div class="tray-heading">${art("coin")}<span>${text("ui.collected")}</span></div><div class="collected-items" id="collected">${collected.map((tile, i) => `<div class="collected-token" style="--i:${i}">${tileContent(tile)}</div>`).join("")}${!collected.length ? '<span class="tray-wait">✦</span>' : ""}</div></div></div></section>`;
   }
 
-  function machine(state, line, spinning = false) {
-    const reels = state.reels.map((reel, i) => {
-      const center = line?.[i] ?? config.slots.stone;
-      const pos = Math.max(0, reel.indexOf(center));
-      const top = reel[(pos + reel.length - 1) % reel.length];
-      const bottom = reel[(pos + 1) % reel.length];
-      return `<div class="reel ${spinning ? 'reel-spinning' : ''}" style="--reel-index:${i}"><div class="reel-track"><div>${symbol(top)}</div><div class="payline-symbol">${symbol(center)}</div><div>${symbol(bottom)}</div></div></div>`;
-    }).join('');
-    return `<div class="slot-machine"><div class="machine-marquee"><span>✦ ✦ ✦</span><b>${text('app.title')}</b><span>✦ ✦ ✦</span></div><div class="reel-frame"><div class="payline"></div>${reels}</div><div class="machine-base"><span>● ● ●</span><span>${text('ui.machine')}</span><span>● ● ●</span></div></div>`;
+  function machine(s, line, l) {
+    const reels = l.displayReels ?? s.reels;
+    const stops = ["final_result", "final_ready", "finished"].includes(s.phase)
+      ? s.lastSpin?.stops
+      : null;
+    const markup = reels
+      .map((reel, i) => {
+        const center = line?.[i] ?? config.slots.stone,
+          pos = stops?.[i] ?? Math.max(0, reel.indexOf(center));
+        const above = reel[(pos + reel.length - 1) % reel.length],
+          below = reel[(pos + 1) % reel.length];
+        const rare = (config.grid.ranks[center] ?? 0) >= config.ui.rareRank;
+        return `<div class="reel ${l.slotSpinning ? "reel-spinning" : ""} ${rare ? "rare-reel" : ""}" data-reel="${i}" style="--reel-index:${i};--reel-length:${reel.length}"><div class="reel-window"><div class="reel-static"><div class="reel-cell adjacent-symbol">${symbol(above)}</div><div class="reel-cell payline-symbol">${symbol(center)}</div><div class="reel-cell adjacent-symbol">${symbol(below)}</div></div><div class="reel-blur-strip" aria-hidden="true">${[...reel, ...reel.slice(0, 3)].map((id) => `<div class="reel-cell">${symbol(id)}</div>`).join("")}</div></div><span class="reel-shine"></span></div>`;
+      })
+      .join("");
+    return `<div class="slot-machine"><div class="machine-crown">${art("crown")}</div><div class="machine-marquee">${bulbs(16)}<span>✦</span><b>${text("app.title")}</b><span>✦</span></div><div class="machine-body"><div class="machine-column column-left"></div><div class="reel-frame"><span class="payline-arrow arrow-left">▸</span>${markup}<div class="payline" aria-hidden="true"></div><span class="payline-arrow arrow-right">◂</span></div><div class="machine-column column-right"></div></div><div class="machine-base"><span>✦ ✦ ✦</span><b>${text("ui.machine")}</b><span>✦ ✦ ✦</span></div></div>`;
   }
 
-  function slotsScene(state, local) {
-    const isFinal = ['finale','final_ready','final_result','finished'].includes(state.phase);
-    const finished = state.phase === 'finished';
-    const preview = state.phase === 'preview';
-    const line = isFinal ? state.lastSpin?.line : preview ? state.preview[local.previewMode === 'maximum' ? 'maximum' : 'representative'].line : state.insertion?.slice(-config.slots.reels).map(x => x.symbol);
-    const prize = preview ? state.preview[local.previewMode === 'maximum' ? 'maximum' : 'representative'].payout : state.lastSpin?.payout ?? 0;
-    const titleKey = finished ? 'ui.finished' : state.phase === 'finale' ? 'ui.finalTitle' : isFinal ? 'ui.finalSpinHint' : preview ? 'ui.preview' : 'ui.installing';
-    return `<section class="scene slots-scene"><span class="eyebrow">${text(isFinal ? 'ui.total' : 'ui.machine')}${isFinal ? ` · ${money(state.total)}` : ''}</span><h1>${text(titleKey)}</h1>${isFinal && !finished ? `<div class="final-stats"><div><b class="spin-count">${number(state.spins)}</b><span>${text('ui.remaining')}</span></div><div><b>${money(state.preview.maximum.payout * state.spins)}</b><span>${text('ui.pot')}</span></div></div>` : ''}${machine(state,line,local.slotSpinning)}${preview || state.phase === 'final_result' || finished ? `<div class="prize-pop ${local.slotSpinning ? 'prize-hidden' : ''}"><small>${text(finished ? 'ui.total' : preview ? local.previewMode === 'maximum' ? 'ui.previewMax' : 'ui.previewMean' : 'ui.prize')}</small><strong>${money(finished ? state.total : prize)}</strong></div>` : ''}${preview ? `<p class="fine-print">${text('ui.previewNote')}</p>` : ''}${state.phase === 'final_ready' ? button('final-spin','ui.finalSpin','primary final-spin') : ''}${finished ? `<p>${text('ui.finishedHint')}</p>${button('restart','app.restart')}` : ''}</section>`;
+  function slotsScene(s, l) {
+    const final = [
+        "finale",
+        "final_ready",
+        "final_result",
+        "finished",
+      ].includes(s.phase),
+      finished = s.phase === "finished",
+      preview = s.phase === "preview";
+    const outcome = preview ? s.preview[l.previewMode] : null;
+    const idle = (l.displayReels ?? s.reels).map(
+      (reel) =>
+        reel.find((id) => id !== config.slots.stone) ?? config.slots.stone,
+    );
+    const line = final
+      ? (s.lastSpin?.line ?? idle)
+      : preview
+        ? outcome.line
+        : idle;
+    const prize = finished
+      ? s.total
+      : preview
+        ? outcome.payout
+        : (s.lastSpin?.payout ?? 0);
+    const title = finished
+      ? "ui.finished"
+      : s.phase === "finale"
+        ? "ui.finalTitle"
+        : s.phase === "final_result"
+          ? "ui.prize"
+          : final
+            ? "ui.finalReady"
+            : preview
+              ? "ui.preview"
+              : "ui.installing";
+    return `<section class="scene slots-scene ${l.enter ? "scene-enter" : ""} ${l.prizeVisible ? "show-prize" : ""}"><div class="scene-heading"><span class="eyebrow">${text(final ? "ui.finalBadge" : preview ? "ui.previewBadge" : "ui.machine")}</span><h1>${text(title)}</h1>${!final && !preview ? `<p>${text("ui.installingHint")}</p>` : ""}</div>${final && !finished ? `<div class="final-stats"><div class="final-spin-bank"><span>${text("ui.remaining")}</span><b data-remaining-spins>${number(s.spins)}</b></div><div class="pot-bank"><span>${text("ui.pot")}</span><b data-pot>${money(s.preview.maximum.payout * s.spins)}</b></div></div>` : ""}<div class="machine-theater">${machine(s, line, l)}${!final && !preview ? `<div class="token-queue" aria-label="${text("ui.collected")}">${s.extraction.tokens.map((token, i) => `<div data-queue="${i}" class="queue-token">${tileContent({ kind: "symbol", ...token })}</div>`).join("")}</div>` : ""}</div>${preview || s.phase === "final_result" || finished ? `<div class="prize-board ${l.prizeVisible || finished ? "is-visible" : ""}" aria-live="polite"><span>${text(finished ? "ui.total" : preview ? (l.previewMode === "maximum" ? "ui.previewMax" : "ui.previewMean") : prize > 0 ? "ui.prize" : "ui.zero")}</span><strong data-prize data-value="${prize}">${money(prize)}</strong>${preview && l.previewMode === "representative" ? `<small>${text("ui.meanValue")} · ${money(s.preview.expected)}</small>` : ""}</div>` : ""}${preview ? `<p class="fine-print">${text("ui.previewNote")}</p>` : ""}${s.phase === "final_ready" ? `<div class="final-actions">${button("final-spin", "ui.finalSpin", "primary green-button final-spin", l.busy ? "disabled" : "")}<p>${text("ui.finalSpinHint")}</p></div>` : ""}${s.phase === "finale" ? `<div class="final-intro"><b>${number(s.spins)}</b><span>${text("ui.finalIntroLabel")}</span></div>` : ""}${s.phase === "final_result" && l.slotSpinning ? `<p class="spinning-label">${text("ui.prizePending")}</p>` : ""}${finished ? `<div class="finish-actions"><p>${text("ui.finishedHint")}</p>${button("restart", "app.restart", "primary green-button")}</div>` : ""}</section>`;
   }
 
-  function progressionScene(state) {
-    return `<section class="scene fire-scene"><div class="fire-burst">${Array.from({ length: 12 }, (_, i) => `<span style="--i:${i}">🔥</span>`).join('')}</div><div class="big-fire">🔥</div><h1>${text('ui.fire')}</h1><p>${text('ui.fireHint')}</p><div class="progression-large">${Array.from({ length: config.progression.choiceAt }, (_, i) => `<span class="${i < state.progression ? 'lit' : ''}">🔥</span>`).join('')}</div></section>`;
+  function progressionScene(s, l) {
+    return `<section class="scene fire-scene ${l.enter ? "scene-enter" : ""}"><div class="fire-rays"></div><div class="fire-burst" aria-hidden="true">${Array.from({ length: 12 }, (_, i) => `<span style="--i:${i}">${text("ui.fireIcon")}</span>`).join("")}</div><div class="big-fire">${art("flame")}</div><h1>${text("ui.fire")}</h1><p>${text("ui.fireHint")}</p><div class="progression-large">${Array.from({ length: config.progression.choiceAt }, (_, i) => `<span class="flame-medal ${i < s.progression ? "lit" : ""}">${art("flame")}</span>`).join("")}</div><span class="fire-count">${s.progression} / ${config.progression.choiceAt}</span></section>`;
   }
 
-  function sidebar(state) {
-    const filled = state.reels.flat().filter(s => s !== config.slots.stone).length;
-    const total = config.slots.reels * config.slots.positions;
-    return `<aside class="status-sidebar"><div class="sidebar-top"><span class="tiny-label">${text('ui.machine')}</span><span class="mini-icon">▥</span></div><div class="mini-reels">${state.reels.map(reel => `<div>${symbol([...reel].reverse().find(s => s !== config.slots.stone) ?? config.slots.stone)}</div>`).join('')}</div><div class="capacity-label"><strong>${filled}<span> / ${total}</span></strong></div><div class="capacity-bar"><i style="width:${filled / total * 100}%"></i></div><p class="muted">${text('ui.filled')}</p><div class="stat-divider"></div><span class="tiny-label">${text('ui.progression')}</span><div class="progression-dots">${Array.from({ length: config.progression.choiceAt }, (_, i) => `<span class="${i < state.progression ? 'active' : ''}">🔥</span>`).join('')}</div><div class="spin-bank"><span>${text('ui.spins')}</span><strong>${number(state.spins)}<span>↗</span></strong></div><details class="composition"><summary>${text('ui.inventory')}</summary>${Object.keys(config.slots.target).map(id => `<div>${symbol(id)}<span>${state.reels.map(reel => reel.filter(s => s === id).length).join(' · ')}</span></div>`).join('')}</details></aside>`;
+  function sidebar(s, l) {
+    const filled = s.reels
+        .flat()
+        .filter((id) => id !== config.slots.stone).length,
+      capacity = config.slots.reels * config.slots.positions;
+    return `<aside class="status-sidebar" data-no-spin><section class="jackpot-panel"><div class="jackpot-label">${art("crown")}<span>${text("ui.jackpot")}</span>${art("crown")}</div><strong>${money(config.slots.payout.exceptional.value)}</strong><div class="jackpot-symbols">${Array.from({ length: config.slots.reels }, () => symbol(config.slots.payout.exceptional.symbol)).join("")}</div><p>${text("ui.jackpotHint")}</p></section><section class="machine-status"><div class="panel-heading"><span>${text("ui.machine")}</span><span class="panel-tag">${filled === capacity ? text("ui.full") : `${Math.round((filled / capacity) * 100)}%`}</span></div><div class="mini-reels">${s.reels.map((reel) => `<div>${symbol([...reel].reverse().find((id) => id !== config.slots.stone) ?? config.slots.stone)}</div>`).join("")}</div><div class="capacity-label"><b data-filled>${filled}<small> / ${capacity}</small></b><span>${text("ui.filled")}</span></div><div class="capacity-bar"><i style="--fill:${(filled / capacity) * 100}%"></i></div><p class="panel-caption">${text("ui.machineHint")}</p><details class="composition" ${l.inventoryOpen ? "open" : ""}><summary>${text("ui.inventory")}<span>⌄</span></summary><div class="inventory-table">${Object.keys(
+      config.slots.target,
+    )
+      .map(
+        (id) =>
+          `<div>${symbol(id)}<span>${s.reels.map((reel) => reel.filter((x) => x === id).length).join(" · ")}</span></div>`,
+      )
+      .join(
+        "",
+      )}</div></details></section><section class="spin-bank"><div>${art("spin")}<span>${text("ui.spins")}<small>${text("ui.spinBankHint")}</small></span><strong data-banked-spins>${number(s.spins)}</strong></div></section><section class="progress-panel"><div class="panel-heading"><span>${text("ui.progression")}</span><b>${s.progression} / ${config.progression.choiceAt}</b></div><div class="progression-dots">${Array.from({ length: config.progression.choiceAt }, (_, i) => `<span class="flame-medal ${i < s.progression ? "lit" : ""}">${art("flame")}</span>`).join("")}</div><p class="panel-caption">${text("ui.progressHint")}</p></section></aside>`;
   }
 
-  return (state, local) => {
+  function render(s, l) {
+    const phase = l.presentation ?? s.phase;
     let scene;
-    const phase = local.presentation ?? state.phase;
-    if (phase === 'wheel') scene = wheelScene(state, local);
-    else if (phase === 'category') scene = categoryScene(state);
-    else if (phase === 'cards') scene = cardsScene(state);
-    else if (['offer','challenge'].includes(phase)) scene = challengeScene(state, local);
-    else if (phase === 'reward') scene = `<section class="scene reward-scene"><span class="eyebrow">${text('ui.points')}</span><div class="points-pop">+${number(state.points)}</div><h1>${text('ui.reward')}</h1><div class="confetti"></div></section>`;
-    else if (phase === 'grid') scene = gridScene(state, local);
-    else if (phase === 'progression') scene = progressionScene(state);
-    else if (phase === 'decision') scene = `<section class="scene decision-scene"><div class="big-fire">🔥</div><h1>${text('ui.decision')}</h1><p>${text('ui.decisionHint')}</p><div class="actions">${button('continue','ui.continue','secondary')}${button('advance','ui.advance')}</div></section>`;
-    else scene = slotsScene(state, local);
-    return `<div class="app-shell"><header class="app-header"><a class="wordmark" href="/" aria-label="${text('app.title')}"><span class="brand-icon">✦</span>${text('app.title')}<span class="brand-dot">.</span></a><span class="demo-badge">${text('app.demo')}</span><button class="rules-button" data-action="rules"><span>?</span>${text('app.rules')}</button></header><div class="topbar"><div class="round-label"><span class="live-dot"></span>${text(config.wheels[state.wheel].label_key)}</div><div class="turn-label">${text('ui.turn')}<b>${String(state.turn).padStart(2,'0')}</b></div></div><div class="play-layout"><main class="stage ${local.busy ? 'is-busy' : ''}" data-phase="${state.phase}">${scene}</main>${sidebar(state)}</div><footer><span>✦ ${text('app.title')}</span><p>${text('ui.demoNote')}</p><span class="footer-dots">● ● ●</span></footer></div>${local.rules ? `<div class="modal-scrim"><section class="rules-modal" role="dialog" aria-modal="true" aria-labelledby="rules-title"><button class="modal-close" data-action="close-rules" aria-label="${text('app.close')}">×</button><span class="eyebrow">${text('app.title')}</span><h2 id="rules-title">${text('app.rules')}</h2><p>${text('ui.ruleText')}</p>${button('close-rules','ui.back')}</section></div>` : ''}`;
-  };
+    if (phase === "wheel") scene = wheelScene(s, l);
+    else if (phase === "category") scene = categoryScene(s, l);
+    else if (phase === "cards") scene = cardsScene(s, l);
+    else if (["offer", "challenge"].includes(phase))
+      scene = challengeScene(s, l);
+    else if (phase === "reward")
+      scene = `<section class="scene reward-scene scene-enter">${sparks()}<div class="reward-emblem">${art("coin")}</div><span class="eyebrow">${text("ui.points")}</span><strong class="points-pop">+${number(s.points)}</strong><h1>${text("ui.reward")}</h1><p>${text("ui.pointsHint")}</p></section>`;
+    else if (phase === "grid") scene = gridScene(s, l);
+    else if (phase === "progression") scene = progressionScene(s, l);
+    else if (phase === "decision")
+      scene = `<section class="scene decision-scene scene-enter"><div class="big-fire">${art("flame")}</div><span class="eyebrow">${text(config.wheels[s.wheel].label_key)}</span><h1>${text("ui.decision")}</h1><p>${text("ui.decisionHint")}</p><div class="actions">${button("continue", "ui.continue", "secondary")}${button("advance", "ui.advance", "primary green-button")}</div></section>`;
+    else scene = slotsScene(s, l);
+    return `<div class="casino-backdrop" aria-hidden="true"><span class="spotlight spotlight-left"></span><span class="spotlight spotlight-right"></span><span class="backdrop-diamond">♦</span><span class="backdrop-star">✦</span>${sparks()}</div><div class="app-shell"><header class="app-header" data-no-spin><div class="brand"><span class="brand-emblem">${art("wild")}</span><div><a href="./" class="wordmark">${text("app.title")}</a><span class="brand-tagline">${text("app.tagline")}</span></div></div><div class="header-center"><i class="live-dot"></i>${text("ui.live")}</div><div class="header-controls"><span class="demo-badge"><i></i>${text("app.demo")}</span><button type="button" class="icon-button" data-action="sound" aria-label="${text(l.sound ? "ui.audioOn" : "ui.audioOff")}" aria-pressed="${l.sound}">${icon(l.sound ? "speaker" : "muted")}</button><button type="button" class="icon-button fullscreen-button" data-action="fullscreen" aria-label="${text("ui.fullscreen")}">${icon("expand")}</button><button type="button" class="icon-button help-button" data-action="rules" aria-label="${text("ui.helpHint")}">?</button></div></header><div class="show-bar"><div class="round-label"><span class="round-icon">${art("spark")}</span><div><span>${text("ui.stage")}</span><strong>${text(config.wheels[s.wheel].label_key)}</strong></div></div><nav class="journey" aria-label="${text("ui.progression")}">${["ui.wheelStep", "ui.cardStep", "ui.gridStep", "ui.finalStep"].map((key, i) => `<span class="journey-step ${phaseIndex(s) === i ? "current" : ""} ${phaseIndex(s) > i ? "passed" : ""}"><b>${i + 1}</b><span>${text(key)}</span></span>`).join("")}</nav><div class="turn-label">${text("ui.turn")}<b data-turn>${String(s.turn).padStart(2, "0")}</b></div></div><div class="play-layout"><div class="cabinet"><div class="cabinet-top-lights">${bulbs(38)}</div><main class="stage ${l.busy ? "is-busy" : ""}" id="stage" data-phase="${s.phase}" data-busy="${l.busy}" tabindex="-1">${scene}</main><div class="cabinet-bottom"><span>✦ ✦ ✦</span><p>${text("ui.footer")}</p><span>✦ ✦ ✦</span></div></div>${sidebar(s, l)}</div><footer data-no-spin><span class="footer-brand">✦ ${text("app.title")}</span><p>${text("ui.legal")}</p><button type="button" class="text-button" data-action="request-restart">↻ ${text("ui.newGame")}</button></footer></div>`;
+  }
+  render.modal = (kind = "rules") =>
+    `<div class="modal-scrim"><section class="rules-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1"><button type="button" class="modal-close icon-button" data-action="close-modal" aria-label="${text("app.close")}">×</button><span class="modal-emblem">${art(kind === "rules" ? "cards" : "spin")}</span><span class="eyebrow">${text("app.title")}</span><h2 id="modal-title">${text(kind === "rules" ? "ui.rulesTitle" : "ui.newGameConfirm")}</h2>${kind === "rules" ? `<div class="rule-steps">${[1, 2, 3].map((i) => `<div><b>${i}</b><div><h3>${text(`ui.rule${i}Title`)}</h3><p>${text(`ui.rule${i}Text`)}</p></div></div>`).join("")}</div>${button("close-modal", "ui.back", "primary green-button")}` : `<div class="actions">${button("close-modal", "ui.keepPlaying", "secondary")}${button("restart", "ui.confirmRestart")}</div>`}</section></div>`;
+  Object.assign(render, { symbol, tileContent, money, art });
+  return render;
 }

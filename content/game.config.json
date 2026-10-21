@@ -5,59 +5,84 @@
   "ui": {
     "cardsToDeal": 3,
     "timings": {
-      "wheel": 2800,
-      "category": 900,
+      "wheel": 3400,
+      "category": 1100,
       "deal": 450,
-      "flip": 400,
-      "reward": 1000,
-      "grid": 2600,
-      "insertion": 1500,
-      "previewSpin": 1100,
-      "previewPrize": 1800,
-      "fire": 1600,
-      "finalIntro": 1800,
-      "finalSpin": 2400,
-      "finalPrize": 1800
+      "flip": 350,
+      "reward": 1100,
+      "grid": 1900,
+      "insertion": 900,
+      "previewSpin": 850,
+      "previewPrize": 1200,
+      "fire": 2100,
+      "finalIntro": 1600,
+      "finalSpin": 1800,
+      "finalPrize": 1500,
+      "gridStop": 180,
+      "flight": 500,
+      "replacement": 220,
+      "insertToken": 230,
+      "reelStop": 150,
+      "cardExit": 240,
+      "numberCount": 500
     },
     "wheelTurns": 5,
-    "reducedMotionDuration": 50
+    "reducedMotionDuration": 50,
+    "wheelBulbs": 64,
+    "gridLightStep": 45,
+    "particleCount": 24,
+    "soundEnabled": false,
+    "soundVolume": 0.08,
+    "randomSeed": true,
+    "rareRank": 5,
+    "currency": "ARS",
+    "locale": "es-AR"
   },
   "symbols": {
     "stone": {
       "name_key": "symbols.stone.name",
-      "icon_key": "symbols.stone.icon"
+      "icon_key": "symbols.stone.icon",
+      "art": "stone"
     },
     "lemon": {
       "name_key": "symbols.lemon.name",
-      "icon_key": "symbols.lemon.icon"
+      "icon_key": "symbols.lemon.icon",
+      "art": "lemon"
     },
     "orange": {
       "name_key": "symbols.orange.name",
-      "icon_key": "symbols.orange.icon"
+      "icon_key": "symbols.orange.icon",
+      "art": "orange"
     },
     "cherry": {
       "name_key": "symbols.cherry.name",
-      "icon_key": "symbols.cherry.icon"
+      "icon_key": "symbols.cherry.icon",
+      "art": "cherry"
     },
     "bell": {
       "name_key": "symbols.bell.name",
-      "icon_key": "symbols.bell.icon"
+      "icon_key": "symbols.bell.icon",
+      "art": "bell"
     },
     "diamond": {
       "name_key": "symbols.diamond.name",
-      "icon_key": "symbols.diamond.icon"
+      "icon_key": "symbols.diamond.icon",
+      "art": "diamond"
     },
     "seven": {
       "name_key": "symbols.seven.name",
-      "icon_key": "symbols.seven.icon"
+      "icon_key": "symbols.seven.icon",
+      "art": "seven"
     },
     "wild": {
       "name_key": "symbols.wild.name",
-      "icon_key": "symbols.wild.icon"
+      "icon_key": "symbols.wild.icon",
+      "art": "wild"
     },
     "x2": {
       "name_key": "symbols.x2.name",
-      "icon_key": "symbols.x2.icon"
+      "icon_key": "symbols.x2.icon",
+      "art": "x2"
     }
   },
   "wheels": {
@@ -69,56 +94,63 @@
           "weight": 1,
           "name_key": "wheel_1.cat_1.name",
           "description_key": "wheel_1.cat_1.description",
-          "color": "#ffbc4b",
-          "behavior": "cards"
+          "color": "#f02e75",
+          "behavior": "cards",
+          "art": "brain"
         },
         {
           "id": "cat_2_quiz",
           "weight": 1,
           "name_key": "wheel_1.cat_2_quiz.name",
           "description_key": "wheel_1.cat_2_quiz.description",
-          "color": "#ff775d",
-          "behavior": "cards"
+          "color": "#9b3cff",
+          "behavior": "cards",
+          "art": "question"
         },
         {
           "id": "cat_3",
           "weight": 1,
           "name_key": "wheel_1.cat_3.name",
           "description_key": "wheel_1.cat_3.description",
-          "color": "#e45a9a",
-          "behavior": "cards"
+          "color": "#1983ef",
+          "behavior": "cards",
+          "art": "timer"
         },
         {
           "id": "cat_4",
           "weight": 1,
           "name_key": "wheel_1.cat_4.name",
           "description_key": "wheel_1.cat_4.description",
-          "color": "#a77aff",
-          "behavior": "cards"
+          "color": "#10b995",
+          "behavior": "cards",
+          "art": "spark"
         },
         {
           "id": "cat_5",
           "weight": 1,
           "name_key": "wheel_1.cat_5.name",
           "description_key": "wheel_1.cat_5.description",
-          "color": "#51b6ff",
-          "behavior": "cards"
+          "color": "#f08116",
+          "behavior": "cards",
+          "art": "target"
         },
         {
           "id": "cat_6",
           "weight": 1,
           "name_key": "wheel_1.cat_6.name",
           "description_key": "wheel_1.cat_6.description",
-          "color": "#49d4c1",
-          "behavior": "cards"
+          "color": "#d82fbd",
+          "behavior": "cards",
+          "art": "gift"
         },
         {
           "id": "cat_7_progression",
           "weight": 1,
           "name_key": "wheel_1.cat_7_progression.name",
           "description_key": "wheel_1.cat_7_progression.description",
-          "color": "#f67330",
-          "behavior": "progression"
+          "color": "#f34223",
+          "behavior": "progression",
+          "art": "flame"
         }
       ]
     },
@@ -130,32 +162,36 @@
           "weight": 1,
           "name_key": "wheel_2.w2_cat_1.name",
           "description_key": "wheel_2.w2_cat_1.description",
-          "color": "#e45a9a",
-          "behavior": "cards"
+          "color": "#ed336b",
+          "behavior": "cards",
+          "art": "seven"
         },
         {
           "id": "w2_cat_2",
           "weight": 1,
           "name_key": "wheel_2.w2_cat_2.name",
           "description_key": "wheel_2.w2_cat_2.description",
-          "color": "#a77aff",
-          "behavior": "cards"
+          "color": "#993bfa",
+          "behavior": "cards",
+          "art": "target"
         },
         {
           "id": "w2_cat_3",
           "weight": 1,
           "name_key": "wheel_2.w2_cat_3.name",
           "description_key": "wheel_2.w2_cat_3.description",
-          "color": "#51b6ff",
-          "behavior": "cards"
+          "color": "#087ddd",
+          "behavior": "cards",
+          "art": "bolt"
         },
         {
           "id": "w2_cat_4_finale",
           "weight": 1,
           "name_key": "wheel_2.w2_cat_4_finale.name",
           "description_key": "wheel_2.w2_cat_4_finale.description",
-          "color": "#49d4c1",
-          "behavior": "finale"
+          "color": "#e87d0b",
+          "behavior": "finale",
+          "art": "crown"
         }
       ]
     }
@@ -383,12 +419,14 @@
       "spin": {
         "spins": 1,
         "name_key": "effects.spin.name",
-        "icon_key": "effects.spin.icon"
+        "icon_key": "effects.spin.icon",
+        "art": "spin"
       },
       "bonus": {
         "spins": 1,
         "name_key": "effects.bonus.name",
-        "icon_key": "effects.bonus.icon"
+        "icon_key": "effects.bonus.icon",
+        "art": "bolt"
       }
     },
     "ranks": {
