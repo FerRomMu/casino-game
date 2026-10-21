@@ -250,3 +250,43 @@ test('advanced demo wheel reserves ten percent for the finale', () => {
   const sectors=wheelSectors(config.wheels.wheel_2.categories);
   for(const s of sectors) assert.ok(Math.abs(s.probability-(s.behavior==='finale'?.1:.3))<1e-12);
 });
+
+test('payout explanations identify the paying combination, wilds and one applied multiplier', async () => {
+  const {explainLine}=await import('../src/domain/slots.js');
+  for(const [line, winning, multipliers, payout] of [
+    [['lemon','wild','bell','x2'],[1,2],[3],40000],
+    [['lemon','x2','x2','stone'],[0],[1],2000],
+    [['seven','seven','seven','seven'],[0,1,2,3],[],5000000],
+    [['seven','seven','seven','wild'],[0,1,2,3],[],1000000],
+    [['stone','wild','x2','stone'],[],[],0],
+    [['stone','stone','stone','stone'],[],[],0],
+  ]) {
+    const before=[...line], detail=explainLine(line,config.slots);
+    assert.equal(detail.payout,payout);
+    assert.equal(detail.payout,evaluateLine(line,config.slots));
+    assert.deepEqual(detail.winningIndices,winning);
+    assert.deepEqual(detail.multiplierIndices,multipliers);
+    assert.deepEqual(line,before);
+  }
+  const tied=structuredClone(config.slots);
+  tied.payout.table.orange[1]=tied.payout.table.lemon[1];
+  assert.deepEqual(explainLine(['lemon','orange','stone','stone'],tied).winningIndices,[0]);
+});
+
+test('maximum final bank includes accumulated winnings and converges to the actual final total', async () => {
+  const {finalBank}=await import('../src/domain/game.js');
+  const {state,context}=setup();
+  state.phase='final_ready'; state.spins=4; state.total=15000;
+  state.reels=Array.from({length:4},()=>Array(20).fill('lemon'));
+  state.preview=analyzeSlots(state.reels,config.slots);
+  assert.deepEqual(finalBank(state),{accumulated:15000,maximum:415000});
+  let next=state;
+  for(let i=0;i<4;i++) {
+    next=transition(next,{type:'SPIN_FINAL'},context);
+    assert.equal(finalBank(next).accumulated,15000+(i+1)*100000);
+    assert.equal(finalBank(next).maximum,415000);
+    next=transition(next,{type:'END_FINAL_RESULT'},context);
+  }
+  assert.equal(next.phase,'finished');
+  assert.equal(finalBank(next).maximum,finalBank(next).accumulated);
+});

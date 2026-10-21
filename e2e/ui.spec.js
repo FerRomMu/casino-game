@@ -367,8 +367,84 @@ test("a complete deterministic game runs with sound, cards, rewards and the fina
         await click(page, "numeric");
       } else await click(page, "success");
     } else if (phase === "decision") await click(page, "continue");
-    else if (phase === "final_ready") await click(page, "final-spin");
-    else throw new Error(`UNEXPECTED_IDLE_PHASE:${phase}`);
+    else if (phase === "final_ready") {
+      const before = Number(
+        await page.locator("[data-accumulated]").getAttribute("data-value"),
+      );
+      const remaining = Number(
+        await page.locator("[data-remaining-spins]").innerText(),
+      );
+      const maximum = Number(
+        await page.locator("[data-pot]").getAttribute("data-value"),
+      );
+      const perSpin = (maximum - before) / remaining;
+      await page.evaluate(() => {
+        window.banksDuringSpin = [];
+        window.bankObserver = new MutationObserver(() => {
+          if (
+            document.querySelector(
+              '#stage[data-phase="final_result"] .reel-spinning',
+            )
+          ) {
+            window.banksDuringSpin.push({
+              total: Number(
+                document.querySelector("[data-accumulated]").dataset.value,
+              ),
+              maximum: Number(
+                document.querySelector("[data-pot]").dataset.value,
+              ),
+            });
+          }
+        });
+        window.bankObserver.observe(document.querySelector("#app"), {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["class"],
+        });
+      });
+      await click(page, "final-spin");
+      await ready(page);
+      const hiddenBanks = await page.evaluate(() => {
+        window.bankObserver.disconnect();
+        return window.banksDuringSpin;
+      });
+      expect(hiddenBanks.length).toBeGreaterThan(0);
+      expect(
+        hiddenBanks.every(
+          (bank) => bank.total === before && bank.maximum === maximum,
+        ),
+      ).toBe(true);
+      const line = await page
+        .locator(".payline-symbol > [data-symbol]")
+        .evaluateAll((nodes) => nodes.map((node) => node.dataset.symbol));
+      const { explainLine } = await import("../src/domain/slots.js");
+      const expected = explainLine(line, original.slots);
+      const accumulated = before + expected.payout;
+      await expect(page.locator("[data-accumulated]")).toHaveAttribute(
+        "data-value",
+        String(accumulated),
+      );
+      await expect(page.locator("[data-pot]")).toHaveAttribute(
+        "data-value",
+        String(accumulated + perSpin * (remaining - 1)),
+      );
+      const marked = await page
+        .locator("[data-contribution]")
+        .evaluateAll((nodes) =>
+          nodes.map((node) => ({
+            index: Number(node.closest("[data-reel]").dataset.reel),
+            kind: node.dataset.contribution,
+          })),
+        );
+      expect(
+        marked.filter((x) => x.kind === "symbol").map((x) => x.index),
+      ).toEqual(expected.winningIndices);
+      expect(
+        marked.filter((x) => x.kind === "multiplier").map((x) => x.index),
+      ).toEqual(expected.multiplierIndices);
+      await contentFits(page);
+    } else throw new Error(`UNEXPECTED_IDLE_PHASE:${phase}`);
   }
   await ready(page, "finished");
   expect(turns).toBeGreaterThan(3);
@@ -673,4 +749,65 @@ test("blast animation collects the domain snapshot and high maximum uses a large
   expect(
     Number((await page.locator("[data-filled]").innerText()).split("/")[0]),
   ).toBe(expected.tokens.reduce((n, t) => n + t.units, 0));
+});
+
+test("final reels stop left to right with growing pauses and never reveal the bank early", async ({
+  page,
+}) => {
+  await prepare(page, {
+    force: { wheel_1: "cat_7_progression", wheel_2: "w2_cat_4_finale" },
+    reduced: false,
+    timings: {
+      finalSpin: 180,
+      finalReelStop: 180,
+      finalReelStep: 100,
+      finalReelSettle: 100,
+      finalPrize: 30,
+    },
+  });
+  for (let i = 0; i < 3; i++) {
+    await click(page, "spin");
+    await ready(page, i === 2 ? "decision" : "wheel");
+  }
+  await click(page, "advance");
+  await ready(page, "wheel");
+  await click(page, "spin");
+  await ready(page, "final_ready");
+  await page.evaluate(() => {
+    window.stops = [];
+    window.earlyHighlights = [];
+    new MutationObserver(() => {
+      for (const node of document.querySelectorAll(".reel-stopped")) {
+        const index = Number(node.dataset.reel);
+        if (!window.stops.some((s) => s.index === index))
+          window.stops.push({ index, time: performance.now() });
+      }
+      if (
+        document.querySelector(".reel-spinning") &&
+        document.querySelector("[data-contribution]")
+      )
+        window.earlyHighlights.push(true);
+    }).observe(document.querySelector("#app"), {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+  });
+  await click(page, "final-spin");
+  await page.waitForSelector(
+    '#stage[data-phase="final_ready"][data-busy="false"]',
+  );
+  const stops = await page.evaluate(() => window.stops);
+  expect(stops.map((s) => s.index)).toEqual([0, 1, 2, 3]);
+  for (let i = 1; i < 4; i++)
+    expect(stops[i].time - stops[i - 1].time).toBeGreaterThanOrEqual(
+      180 + (i - 1) * 100 - 25,
+    );
+  expect(await page.evaluate(() => window.earlyHighlights)).toEqual([]);
+  await expect(page.locator("[data-contribution]")).toHaveCount(0);
+  await expect(page.locator("[data-accumulated]")).toHaveAttribute(
+    "data-value",
+    "0",
+  );
 });

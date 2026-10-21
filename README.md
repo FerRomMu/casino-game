@@ -34,7 +34,7 @@ La partida se ejecuta en memoria. Cada carga obtiene una semilla nueva del naveg
 - Protección frente a clicks repetidos durante las secuencias. La ayuda se puede abrir durante las animaciones sin reemplazar ni interrumpir la escena en curso.
 - Una única tirada de muestra tras cada recompensa: si aumenta el máximo alcanzable, lo muestra y anuncia el nuevo récord; de lo contrario, muestra una tirada aleatoria. No consume tiradas ni acredita premios. Los umbrales y tamaños del número se configuran en `ui.prizeTiers`.
 - Tercera aparición de progresión: elegir pasar o continuar. Cuarta aparición: pase obligatorio.
-- Primera aparición de la categoría final: acceso directo al tragamonedas, con una tirada por click y actualización del máximo acumulable restante.
+- Primera aparición de la categoría final: acceso directo al tragamonedas, con una tirada por click, frenado pausado de izquierda a derecha y resaltado de los símbolos que realmente pagan (incluidos Wild y un único multiplicador). El pozo acumulado se muestra junto al máximo total: acumulado + máximo por tirada × tiradas restantes. Ambos se actualizan al terminar de frenar, sin revelar el resultado durante el giro.
 - Juego ajustado a `100dvh`, sin scroll de página, con título y sonido dentro del gabinete, fondo texturado e inventario siempre visible. Diseño adaptable y preferencia `prefers-reduced-motion`.
 - Efectos de sonido opcionales, silenciados al iniciar, pantalla completa y reinicio con confirmación. El resultado numérico muestra su premio y conserva el foco del teclado, incluidos sus límites.
 
@@ -63,7 +63,7 @@ Los mazos se agotan sin repetir cartas; al agotarse una categoría, se habilita 
 
 Las claves ausentes se muestran como `MISSING:<key>` en desarrollo y como texto vacío en la distribución de producción.
 
-Los campos `art` de símbolos, efectos y categorías referencian ilustraciones de `assets/casino.svg`. Si un símbolo o efecto no declara ilustración, utiliza su `icon_key` como alternativa. Los tiempos de las secuencias, cantidad de luces, preferencia inicial de sonido y umbral de efectos para fichas especiales están en `ui`. Las fuentes y las ilustraciones se sirven localmente y se incluyen en el build: la demo no requiere servicios externos para dibujar la interfaz.
+Los campos `art` de símbolos, efectos y categorías referencian ilustraciones de `assets/casino.svg`. Si un símbolo o efecto no declara ilustración, utiliza su `icon_key` como alternativa. El frenado final se configura con `ui.timings.finalReelStop` (primera pausa), `finalReelStep` (incremento entre pausas) y `finalReelSettle` (asentamiento final); las muestras conservan `reelStop`. Los tiempos de las secuencias, cantidad de luces, preferencia inicial de sonido y umbral de efectos para fichas especiales están en `ui`. Las fuentes y las ilustraciones se sirven localmente y se incluyen en el build: la demo no requiere servicios externos para dibujar la interfaz.
 
 ## Separación de responsabilidades
 

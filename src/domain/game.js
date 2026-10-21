@@ -122,3 +122,11 @@ export function transition(state, action, context) {
   }
   return s;
 }
+
+// Maximum attainable final total includes the prize already banked.
+export function finalBank(state) {
+  return {
+    accumulated: state.total,
+    maximum: state.total + (state.preview?.maximum.payout ?? 0) * state.spins,
+  };
+}

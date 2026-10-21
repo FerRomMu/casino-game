@@ -3829,3 +3829,105 @@ body {
     max-height: none;
   }
 }
+
+/* Final banks remain side by side, including on narrow screens. */
+.final-stats {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) minmax(0, 1fr);
+  max-width: 590px;
+}
+.final-stats > div {
+  min-width: 0;
+  padding: 9px 8px;
+}
+.final-stats > div > span {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.4;
+}
+.final-stats > div > b {
+  font-size: clamp(20px, 3.8cqw, 32px);
+  white-space: nowrap;
+}
+.final-stats > .accumulated-bank {
+  border-color: #a6e88480;
+  background: linear-gradient(135deg, #23482a, #142c25);
+  box-shadow: inset 0 1px #d6ffb733;
+}
+.accumulated-bank b {
+  color: #caff93;
+}
+.has-winning-line
+  .payline-symbol:not(.winning-symbol):not(.winning-multiplier)
+  > .symbol {
+  opacity: 0.45;
+  filter: saturate(0.5);
+}
+.payline-symbol.winning-symbol,
+.payline-symbol.winning-multiplier {
+  background: radial-gradient(ellipse, #fff2a966, #e8a62333 65%, transparent);
+  box-shadow:
+    inset 0 0 0 2px #ffe794,
+    inset 0 0 18px #ffcb64aa;
+}
+.payline-symbol.winning-multiplier {
+  box-shadow:
+    inset 0 0 0 2px #9ef5ff,
+    inset 0 0 18px #64dfffaa;
+  background: radial-gradient(ellipse, #7beeff55, transparent);
+}
+.payline-symbol.winning-symbol > .symbol,
+.payline-symbol.winning-multiplier > .symbol {
+  animation: winning-pulse 0.9s ease-in-out infinite alternate;
+}
+.winner-mark {
+  position: absolute;
+  bottom: 1px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 7px;
+  letter-spacing: 0.7px;
+  font-weight: 800;
+  color: #4a2b05;
+  background: #ffe694;
+  white-space: nowrap;
+}
+.winning-multiplier .winner-mark {
+  color: #07425b;
+  background: #9ef5ff;
+}
+@keyframes winning-pulse {
+  from {
+    filter: drop-shadow(0 0 4px #ffe396);
+  }
+  to {
+    filter: drop-shadow(0 0 12px #ffcf55);
+    transform: scale(1.08);
+  }
+}
+@media (max-width: 600px) and (orientation: portrait) {
+  .final-stats {
+    grid-template-columns: 36px minmax(0, 1fr) minmax(0, 1fr);
+    gap: 5px;
+  }
+  .final-stats > div {
+    padding: 7px 3px;
+  }
+  .final-stats > div > b {
+    font-size: clamp(16px, 5.5cqw, 23px);
+  }
+  .final-stats > div > span {
+    font-size: 6px;
+    letter-spacing: 0.2px;
+  }
+  .final-spin-bank > b {
+    font-size: 25px !important;
+  }
+  .winner-mark {
+    font-size: 6px;
+    padding: 1px 3px;
+    letter-spacing: 0;
+  }
+}

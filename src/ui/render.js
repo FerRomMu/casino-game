@@ -1,3 +1,4 @@
+import { finalBank } from "../domain/game.js";
 import { wheelSectors } from "../domain/random.js";
 
 export const escapeHtml = (value) =>
@@ -115,6 +116,12 @@ export function createRenderer(config, t) {
     const stops =
       l.displayStops ??
       (s.phase === "preview" ? s.previewOutcome.stops : s.lastSpin?.stops);
+    const result =
+      ["final_result", "final_ready", "finished"].includes(s.phase) &&
+      l.prizeVisible &&
+      !l.slotSpinning
+        ? s.lastSpin
+        : null;
     const markup = reels
       .map((reel, i) => {
         const center =
@@ -125,10 +132,12 @@ export function createRenderer(config, t) {
         const above = reel[(pos + reel.length - 1) % reel.length],
           below = reel[(pos + 1) % reel.length];
         const rare = (config.grid.ranks[center] ?? 0) >= config.ui.rareRank;
-        return `<div class="reel ${l.slotSpinning ? "reel-spinning" : ""} ${rare ? "rare-reel" : ""}" data-reel="${i}" data-position="${pos}" style="--reel-index:${i};--reel-length:${reel.length}"><div class="reel-window"><div class="reel-static"><div class="reel-cell adjacent-symbol">${symbol(above)}</div><div class="reel-cell payline-symbol">${symbol(center)}</div><div class="reel-cell adjacent-symbol">${symbol(below)}</div></div><div class="reel-blur-strip" aria-hidden="true">${[...reel, ...reel.slice(0, 3)].map((id) => `<div class="reel-cell">${symbol(id)}</div>`).join("")}</div></div><span class="reel-shine"></span></div>`;
+        const winning = result?.winningIndices.includes(i),
+          multiplying = result?.multiplierIndices.includes(i);
+        return `<div class="reel ${l.slotSpinning ? "reel-spinning" : ""} ${rare ? "rare-reel" : ""}" data-reel="${i}" data-position="${pos}" style="--reel-index:${i};--reel-length:${reel.length}"><div class="reel-window"><div class="reel-static"><div class="reel-cell adjacent-symbol">${symbol(above)}</div><div class="reel-cell payline-symbol ${winning ? "winning-symbol" : ""} ${multiplying ? "winning-multiplier" : ""}" ${winning || multiplying ? `data-contribution="${multiplying ? "multiplier" : "symbol"}"` : ""}>${symbol(center)}${winning || multiplying ? `<span class="winner-mark">${text(multiplying ? "ui.multiplierApplied" : "ui.winningSymbol")}</span>` : ""}</div><div class="reel-cell adjacent-symbol">${symbol(below)}</div></div><div class="reel-blur-strip" aria-hidden="true">${[...reel, ...reel.slice(0, 3)].map((id) => `<div class="reel-cell">${symbol(id)}</div>`).join("")}</div></div><span class="reel-shine"></span></div>`;
       })
       .join("");
-    return `<div class="slot-machine"><div class="machine-crown">${art("crown")}</div><div class="machine-marquee">${bulbs(16)}<span>✦</span><b>${text("app.title")}</b><span>✦</span></div><div class="machine-body"><div class="machine-column column-left"></div><div class="reel-frame"><span class="payline-arrow arrow-left">▸</span>${markup}<div class="payline" aria-hidden="true"></div><span class="payline-arrow arrow-right">◂</span></div><div class="machine-column column-right"></div></div><div class="machine-base"><span>✦ ✦ ✦</span><b>${text("ui.machine")}</b><span>✦ ✦ ✦</span></div></div>`;
+    return `<div class="slot-machine ${result?.payout > 0 ? "has-winning-line" : ""}"><div class="machine-crown">${art("crown")}</div><div class="machine-marquee">${bulbs(16)}<span>✦</span><b>${text("app.title")}</b><span>✦</span></div><div class="machine-body"><div class="machine-column column-left"></div><div class="reel-frame"><span class="payline-arrow arrow-left">▸</span>${markup}<div class="payline" aria-hidden="true"></div><span class="payline-arrow arrow-right">◂</span></div><div class="machine-column column-right"></div></div><div class="machine-base"><span>✦ ✦ ✦</span><b>${text("ui.machine")}</b><span>✦ ✦ ✦</span></div></div>`;
   }
 
   function slotsScene(s, l) {
@@ -141,6 +150,12 @@ export function createRenderer(config, t) {
       finished = s.phase === "finished",
       preview = s.phase === "preview";
     const outcome = preview ? s.previewOutcome : null;
+    // Keep both banks at their previous values until the last reel reveals the prize.
+    const bankState =
+      s.phase === "final_result" && l.slotSpinning
+        ? { ...s, total: s.total - s.lastSpin.payout, spins: s.spins + 1 }
+        : s;
+    const bank = finalBank(bankState);
     const idle = (l.displayReels ?? s.reels).map(
       (reel) =>
         reel.find((id) => id !== config.slots.stone) ?? config.slots.stone,
@@ -166,7 +181,7 @@ export function createRenderer(config, t) {
             : preview
               ? "ui.preview"
               : "ui.installing";
-    return `<section class="scene slots-scene ${l.enter ? "scene-enter" : ""} ${l.prizeVisible ? "show-prize" : ""}"><div class="scene-heading"><span class="eyebrow">${text(final ? "ui.finalBadge" : preview ? "ui.previewBadge" : "ui.machine")}</span><h1>${text(title)}</h1>${!final && !preview ? `<p>${text("ui.installingHint")}</p>` : ""}</div>${final && !finished ? `<div class="final-stats"><div class="final-spin-bank"><span>${text("ui.remaining")}</span><b data-remaining-spins>${number(s.spins)}</b></div><div class="pot-bank"><span>${text("ui.pot")}</span><b data-pot>${money(s.preview.maximum.payout * s.spins)}</b></div></div>` : ""}<div class="machine-theater">${machine(s, line, l)}${!final && !preview ? `<div class="token-queue" aria-label="${text("ui.collected")}">${s.extraction.tokens.map((token, i) => `<div data-queue="${i}" class="queue-token">${tileContent({ kind: "symbol", ...token })}</div>`).join("")}</div>` : ""}</div>${preview || s.phase === "final_result" || finished ? `<div class="prize-board ${l.prizeVisible || finished ? "is-visible" : ""} ${preview && s.newMaximum ? "new-maximum" : ""}" style="--prize-scale:${[...config.ui.prizeTiers].reverse().find((tier) => prize >= tier.minimum)?.scale ?? 1}" data-preview-kind="${preview ? (s.newMaximum ? "maximum" : "random") : "final"}" aria-live="polite"><span>${text(finished ? "ui.total" : preview ? (s.newMaximum ? "ui.previewMax" : "ui.previewExample") : prize > 0 ? "ui.prize" : "ui.zero")}</span><strong data-prize data-value="${prize}">${money(prize)}</strong></div>` : ""}${preview ? `<p class="fine-print">${text("ui.previewNote")}</p>` : ""}${s.phase === "final_ready" ? `<div class="final-actions">${button("final-spin", "ui.finalSpin", "primary green-button final-spin", l.busy ? "disabled" : "")}<p>${text("ui.finalSpinHint")}</p></div>` : ""}${s.phase === "finale" ? `<div class="final-intro"><b>${number(s.spins)}</b><span>${text("ui.finalIntroLabel")}</span></div>` : ""}${s.phase === "final_result" && l.slotSpinning ? `<p class="spinning-label">${text("ui.prizePending")}</p>` : ""}${finished ? `<div class="finish-actions"><p>${text("ui.finishedHint")}</p>${button("restart", "app.restart", "primary green-button")}</div>` : ""}</section>`;
+    return `<section class="scene slots-scene ${l.enter ? "scene-enter" : ""} ${l.prizeVisible ? "show-prize" : ""}"><div class="scene-heading"><span class="eyebrow">${text(final ? "ui.finalBadge" : preview ? "ui.previewBadge" : "ui.machine")}</span><h1>${text(title)}</h1>${!final && !preview ? `<p>${text("ui.installingHint")}</p>` : ""}</div>${final ? `<div class="final-stats"><div class="final-spin-bank"><span>${text("ui.remaining")}</span><b data-remaining-spins>${number(s.spins)}</b></div><div class="accumulated-bank"><span>${text("ui.accumulated")}</span><b data-accumulated data-value="${bank.accumulated}">${money(bank.accumulated)}</b></div><div class="pot-bank"><span>${text("ui.pot")}</span><b data-pot data-value="${bank.maximum}">${money(bank.maximum)}</b></div></div>` : ""}<div class="machine-theater">${machine(s, line, l)}${!final && !preview ? `<div class="token-queue" aria-label="${text("ui.collected")}">${s.extraction.tokens.map((token, i) => `<div data-queue="${i}" class="queue-token">${tileContent({ kind: "symbol", ...token })}</div>`).join("")}</div>` : ""}</div>${preview || s.phase === "final_result" || finished ? `<div class="prize-board ${l.prizeVisible || finished ? "is-visible" : ""} ${preview && s.newMaximum ? "new-maximum" : ""}" style="--prize-scale:${[...config.ui.prizeTiers].reverse().find((tier) => prize >= tier.minimum)?.scale ?? 1}" data-preview-kind="${preview ? (s.newMaximum ? "maximum" : "random") : "final"}" aria-live="polite"><span>${text(finished ? "ui.total" : preview ? (s.newMaximum ? "ui.previewMax" : "ui.previewExample") : prize > 0 ? "ui.prize" : "ui.zero")}</span><strong data-prize data-value="${prize}">${money(prize)}</strong></div>` : ""}${preview ? `<p class="fine-print">${text("ui.previewNote")}</p>` : ""}${s.phase === "final_ready" ? `<div class="final-actions">${button("final-spin", "ui.finalSpin", "primary green-button final-spin", l.busy ? "disabled" : "")}<p>${text("ui.finalSpinHint")}</p></div>` : ""}${s.phase === "finale" ? `<div class="final-intro"><b>${number(s.spins)}</b><span>${text("ui.finalIntroLabel")}</span></div>` : ""}${s.phase === "final_result" && l.slotSpinning ? `<p class="spinning-label">${text("ui.prizePending")}</p>` : ""}${finished ? `<div class="finish-actions"><p>${text("ui.finishedHint")}</p>${button("restart", "app.restart", "primary green-button")}</div>` : ""}</section>`;
   }
 
   function progressionScene(s, l) {

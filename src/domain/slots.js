@@ -25,24 +25,47 @@ export function insertTokens(reels, tokens, config, rng) {
   return { reels: result, inserted };
 }
 
-export function evaluateLine(line, config) {
+// The same evaluator drives payment and the explanation shown by the UI.
+function scoreLine(line, config, details = false) {
   const rules = config.payout;
-  if (line.every(s => s === rules.exceptional.symbol)) return rules.exceptional.value;
+  const exceptional = line.every(s => s === rules.exceptional.symbol);
   const wilds = line.filter(s => s === config.wild).length;
-  let prize = 0;
-  for (const [symbol, values] of Object.entries(rules.table)) {
-    const natural = line.filter(s => s === symbol).length;
-    if (rules.wildRequiresNatural && natural === 0) continue;
-    const count = natural + wilds;
-    prize = Math.max(prize, values[count] ?? 0);
+  let base = 0, winningSymbol = null;
+  if (exceptional) {
+    base = rules.exceptional.value;
+    winningSymbol = rules.exceptional.symbol;
+  } else {
+    for (const [symbol, values] of Object.entries(rules.table)) {
+      const natural = line.filter(s => s === symbol).length;
+      if (rules.wildRequiresNatural && natural === 0) continue;
+      const prize = values[natural + wilds] ?? 0;
+      // Ties use the first paying combination, rather than highlighting unpaid ones.
+      if (prize > base) { base = prize; winningSymbol = symbol; }
+    }
   }
-  return prize * (line.includes(config.multiplier) ? rules.multiplier : 1);
+  const multiplier = !exceptional && line.includes(config.multiplier) ? rules.multiplier : 1;
+  const payout = base * multiplier;
+  if (!details) return payout;
+  return {
+    payout, base, multiplier, winningSymbol, exceptional,
+    winningIndices: payout > 0 ? line.flatMap((symbol, i) => symbol === winningSymbol || (!exceptional && symbol === config.wild) ? [i] : []) : [],
+    // Repeated multipliers do not stack. Highlight the single applied multiplier.
+    multiplierIndices: payout > 0 && multiplier !== 1 ? [line.indexOf(config.multiplier)] : [],
+  };
+}
+
+export function evaluateLine(line, config) {
+  return scoreLine(line, config);
+}
+
+export function explainLine(line, config) {
+  return scoreLine(line, config, true);
 }
 
 export function spinSlots(reels, config, rng) {
   const stops = reels.map(reel => indexOfRandom(reel.length, rng));
   const line = reels.map((reel, i) => reel[stops[i]]);
-  return { stops, line, payout: evaluateLine(line, config) };
+  return { stops, line, ...explainLine(line, config) };
 }
 
 // Enumerate symbol combinations, aggregating identical positions. Exact, not Monte Carlo.

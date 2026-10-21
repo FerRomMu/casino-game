@@ -306,7 +306,7 @@ try {
     await wait("replacement");
   }
 
-  async function revealReels(duration) {
+  async function revealReels(duration, final = false) {
     await wait(duration);
     const reels = [...app.querySelectorAll("[data-reel]")];
     for (const [i, reel] of reels.entries()) {
@@ -314,7 +314,16 @@ try {
       reel.classList.add("reel-stopped");
       play("reel", i);
       if (reel.classList.contains("rare-reel")) burst(reel, true);
-      await wait("reelStop");
+      if (final) {
+        const delay =
+          i === reels.length - 1
+            ? local.motion("finalReelSettle")
+            : reduced.matches
+              ? config.ui.reducedMotionDuration
+              : local.motion("finalReelStop") +
+                i * local.motion("finalReelStep");
+        await waitMs(delay);
+      } else await wait("reelStop");
     }
     local.slotSpinning = false;
     local.prizeVisible = true;
@@ -404,7 +413,7 @@ try {
     local.slotSpinning = true;
     local.prizeVisible = false;
     send({ type: "SPIN_FINAL" });
-    await revealReels("finalSpin");
+    await revealReels("finalSpin", true);
     if (state.lastSpin.payout > 0) {
       play("win");
       burst(app.querySelector(".prize-board"), true);

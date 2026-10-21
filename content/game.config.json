@@ -17,7 +17,7 @@
       "fire": 2100,
       "finalIntro": 1600,
       "finalSpin": 1800,
-      "finalPrize": 1500,
+      "finalPrize": 2300,
       "gridStop": 180,
       "flight": 500,
       "replacement": 220,
@@ -25,7 +25,10 @@
       "reelStop": 150,
       "cardExit": 240,
       "numberCount": 500,
-      "explosion": 450
+      "explosion": 450,
+      "finalReelStop": 800,
+      "finalReelStep": 200,
+      "finalReelSettle": 300
     },
     "wheelTurns": 5,
     "reducedMotionDuration": 50,

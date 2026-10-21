@@ -51,7 +51,7 @@
   "ui.finalTitle": "¡TU GRAN FINAL!",
   "ui.finalHint": "Todo lo que construiste, en tus próximas tiradas.",
   "ui.remaining": "TIRADAS DISPONIBLES",
-  "ui.pot": "MÁXIMO RESTANTE",
+  "ui.pot": "POZO MÁXIMO TOTAL",
   "ui.finalSpin": "¡GIRAR!",
   "ui.finalSpinHint": "Tocá para lanzar los cuatro rodillos",
   "ui.prize": "¡PREMIO CONSEGUIDO!",
@@ -185,5 +185,8 @@
   "ui.selectHint": "Tocá una carta",
   "ui.loading": "PREPARANDO EL SHOW",
   "ui.errorBack": "Reiniciar la demo",
-  "ui.previewExample": "Podrías ganar"
+  "ui.previewExample": "Podrías ganar",
+  "ui.accumulated": "POZO ACUMULADO",
+  "ui.winningSymbol": "PREMIA",
+  "ui.multiplierApplied": "DUPLICA"
 }
