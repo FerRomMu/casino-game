@@ -1,0 +1,76 @@
+[
+  {
+    "id": "wheel_2_w2_cat_1_001",
+    "category": "w2_cat_1",
+    "text_key": "wheel_2.cards.wheel_2_w2_cat_1_001.text",
+    "resolution": "binary",
+    "reward": {
+      "success": 4,
+      "failure": 0
+    }
+  },
+  {
+    "id": "wheel_2_w2_cat_1_002",
+    "category": "w2_cat_1",
+    "text_key": "wheel_2.cards.wheel_2_w2_cat_1_002.text",
+    "resolution": "binary",
+    "reward": {
+      "success": 4,
+      "failure": 0
+    }
+  },
+  {
+    "id": "wheel_2_w2_cat_2_001",
+    "category": "w2_cat_2",
+    "text_key": "wheel_2.cards.wheel_2_w2_cat_2_001.text",
+    "resolution": "binary",
+    "reward": {
+      "success": 4,
+      "failure": 1
+    }
+  },
+  {
+    "id": "wheel_2_w2_cat_2_002",
+    "category": "w2_cat_2",
+    "text_key": "wheel_2.cards.wheel_2_w2_cat_2_002.text",
+    "resolution": "binary",
+    "reward": {
+      "success": 4,
+      "failure": 1
+    }
+  },
+  {
+    "id": "wheel_2_w2_cat_3_001",
+    "category": "w2_cat_3",
+    "text_key": "wheel_2.cards.wheel_2_w2_cat_3_001.text",
+    "resolution": "numeric",
+    "reward": {
+      "success": 5,
+      "failure": 0,
+      "byResult": [
+        0,
+        1,
+        3,
+        5
+      ]
+    },
+    "maximum": 3
+  },
+  {
+    "id": "wheel_2_w2_cat_3_002",
+    "category": "w2_cat_3",
+    "text_key": "wheel_2.cards.wheel_2_w2_cat_3_002.text",
+    "resolution": "numeric",
+    "reward": {
+      "success": 5,
+      "failure": 0,
+      "byResult": [
+        0,
+        1,
+        3,
+        5
+      ]
+    },
+    "maximum": 3
+  }
+]

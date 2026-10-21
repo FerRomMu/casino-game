@@ -1,0 +1,98 @@
+# Gameshow — demo funcional
+
+Webapp local, sin backend ni dependencias de ejecución. Requiere **Node.js 22 o posterior**.
+
+## Probar la demo
+
+```bash
+git clone https://github.com/FerRomMu/casino-game.git
+cd casino-game
+npm run dev
+```
+
+Abrir **http://localhost:5173**. No hace falta ejecutar `npm install`.
+
+Si ya tenés el repo clonado, ejecutá `git pull` antes de `npm run dev`.
+
+La partida se ejecuta en memoria. Recargar la página reinicia la partida y la semilla de ejemplo. El servidor sólo entrega archivos estáticos; no implementa lógica del juego ni una API.
+
+## Qué se puede probar
+
+- Dos ruletas con sectores ponderados: el tamaño visual y la selección usan las mismas probabilidades normalizadas.
+- Selección de carta boca abajo, aceptación o rechazo sin penalización, retos binarios y resultados numéricos.
+- Conversión automática de puntos en extracciones del tablero 7 × 7, incorporación de especiales y reemplazo de piedras en cuatro rodillos de veinte posiciones.
+- Animaciones de ruleta, cartas, selección de fichas, fuego y tragamonedas; bloqueo de acciones durante las secuencias.
+- Previsualizaciones del resultado alcanzable más cercano por encima de la media y del máximo alcanzable, sin consumir tiradas.
+- Tercera aparición de progresión: elegir pasar o continuar. Cuarta aparición: pase obligatorio.
+- Primera aparición de la categoría final: acceso directo al tragamonedas, con una tirada por click y actualización del máximo acumulable restante.
+- Diseño adaptable y preferencia `prefers-reduced-motion`.
+
+## Configuración
+
+Todos los valores del juego y el contenido provisional están en `content/`:
+
+| Archivo | Contenido |
+| --- | --- |
+| `game.config.json` | Pesos, símbolos, inventario, composición objetivo, pagos, progresión, efectos, cantidad de tiradas y tiempos principales de animación. |
+| `cards_wheel_1.json` | Cartas, categoría, clave de texto, resolución y recompensas de la primera ruleta. |
+| `cards_wheel_2.json` | Cartas de la segunda ruleta. La categoría final se resuelve directamente. |
+| `strings.json` | Textos de interfaz, categorías, desafíos, nombres e iconos de símbolos. |
+
+### Cambiar las probabilidades
+
+Modificar `wheels.<wheel_id>.categories[].weight`. Los pesos se normalizan: no tienen que sumar cien. Por ejemplo, pesos `33` y `67` representan 33 % y 67 %; pesos `1` y `2` representan un tercio y dos tercios. Para que una categoría ocupe 33 % de una ruleta de siete categorías, los otros seis pesos deben sumar 67. Un peso cero oculta el sector y excluye la categoría del sorteo. Pesos negativos y ruletas sin peso positivo se rechazan al cargar.
+
+La función `wheelSectors` produce tanto los límites utilizados por el dibujo SVG como los utilizados por el sorteo. Los porcentajes de la leyenda se redondean sólo para mostrarlos.
+
+### Cartas y contenido
+
+Las cartas usan `text_key` y `category`; ninguna regla depende del texto del desafío. `resolution: "binary"` utiliza `reward.success` / `reward.failure`. `resolution: "numeric"` utiliza `maximum` y `reward.byResult`: la posición del arreglo indica la cantidad cumplida, incluyendo cero. `reward.success` y `reward.failure` se muestran como referencia de los extremos.
+
+Los mazos se agotan sin repetir cartas; al agotarse una categoría, se habilita nuevamente su mazo. Rechazar no cambia puntos, fichas, tiradas ni progresión. La carta extraída queda registrada como usada.
+
+Las claves ausentes se muestran como `MISSING:<key>` en desarrollo y como texto vacío en la distribución de producción.
+
+## Separación de responsabilidades
+
+```text
+src/domain/      Reglas, estado, pesos, azar inyectado, inventario y pagos.
+src/ui/app.js   Orquestación de acciones y secuencias de animación.
+src/ui/render.js Vista: transforma el estado en interfaz.
+content/        Datos de juego y textos externos.
+scripts/        Servidor estático, build y simulación por consola.
+test/           Invariantes del dominio.
+```
+
+El dominio no importa DOM, navegador, temporizadores, archivos ni strings. `transition(state, action, { config, decks, rng })` devuelve un estado nuevo. El consumidor controla la fuente de azar; la UI y el simulador usan el mismo dominio. Cada estado representa un participante, con su propio contador y partida; la demo presenta un participante por vez.
+
+Las animaciones consumen resultados ya determinados y no llaman al RNG del dominio. Durante los efectos, la UI bloquea nuevas acciones. El dominio también rechaza acciones incompatibles con su fase actual.
+
+## Pruebas, simulaciones y build
+
+```bash
+npm test
+npm run simulate -- --games 1000 --spins 100000 --seed 20261021
+npm run build
+```
+
+La simulación escribe `artifacts/simulation.json`, incluyendo cuartiles, mediana, premios, composición final, tiradas utilizadas y comparación con los objetivos configurados. Permite `--content <directorio>` para probar otra configuración sin modificar el código. `--spins` indica la cantidad de finales simulados con máquina completa; cada final utiliza entre el mínimo y máximo de tiradas configurados.
+
+El informe distingue partidas completas con la progresión real de la máquina y finales con la máquina completamente formada. Las probabilidades por tirada de los jackpots de la máquina completa se calculan exactamente, enumerando combinaciones de símbolos ponderadas por sus cantidades, además del muestreo de premios.
+
+`npm run build` genera `dist/`. Para servirlo: `node scripts/serve.mjs dist`. El servidor utiliza el puerto 5173; se puede cambiar con la variable `PORT`.
+
+## Decisiones provisionales de la demo
+
+Los datos están marcados como `contentMode: "dummy"`. **Los premios no están calibrados a los objetivos de la spec.** El informe lo indica con `calibrated: false` y expone la comparación, sin declarar cumplidos los objetivos.
+
+- Se paga sólo la línea central: se elige el mejor premio de la tabla según cantidad de símbolos, sin requerir adyacencia. Las otras dos filas son presentación visual.
+- `wildRequiresNatural: true` exige que haya al menos un símbolo natural del tipo representado para que un Wild lo complete. Esta política es configurable. x2 multiplica una sola vez el premio de la línea, independientemente de su cantidad.
+- Cuatro sietes naturales dan el jackpot excepcional. Wild no sustituye un siete para ese jackpot.
+- El mínimo de tres tiradas al entrar al final es una garantía de esta demo; las tiradas acumuladas se limitan a cinco. Ambos límites son configurables.
+- Las cinco fichas de tirada y las cinco fichas de efecto usan efectos de ejemplo configurados en JSON; actualmente ambos entregan una tirada.
+- Las quince fichas especiales reservadas representan veinte unidades de rodillo: algunas fichas especiales entregan dos unidades. Se agregan quince unidades ordinarias al inventario de reposición para alcanzar la composición objetivo de ochenta posiciones. Estas decisiones resuelven diferencias entre las cantidades de la grilla y de los rodillos; requieren validación de producto antes del balance definitivo.
+- Al extraer una ficha se intenta colocar un especial reservado en otra posición aleatoria de menor rango. La ficha desplazada vuelve al inventario de reposición. Se conservan todas las unidades. Los huecos se apagan cuando se agota el inventario disponible, y dejan de participar en los sorteos.
+- La inserción equilibra cada símbolo entre rodillos que todavía tienen capacidad, sin superar sus cuotas objetivo.
+- La categoría de cierre pasa directamente al final, siguiendo el flujo detallado de la spec.
+
+Verificación inicial: once pruebas del dominio aprobadas y simulación de cien partidas más cien mil finales con máquina completa. La comprobación visual automatizada del navegador no se pudo completar en el entorno de desarrollo por restricciones de permisos; queda pendiente la revisión visual al ejecutar la demo localmente.

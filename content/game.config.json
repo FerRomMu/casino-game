@@ -1,0 +1,418 @@
+{
+  "schemaVersion": 1,
+  "contentMode": "dummy",
+  "seed": 20261021,
+  "ui": {
+    "cardsToDeal": 3,
+    "timings": {
+      "wheel": 2800,
+      "category": 900,
+      "deal": 450,
+      "flip": 400,
+      "reward": 1000,
+      "grid": 2600,
+      "insertion": 1500,
+      "previewSpin": 1100,
+      "previewPrize": 1800,
+      "fire": 1600,
+      "finalIntro": 1800,
+      "finalSpin": 2400,
+      "finalPrize": 1800
+    },
+    "wheelTurns": 5,
+    "reducedMotionDuration": 50
+  },
+  "symbols": {
+    "stone": {
+      "name_key": "symbols.stone.name",
+      "icon_key": "symbols.stone.icon"
+    },
+    "lemon": {
+      "name_key": "symbols.lemon.name",
+      "icon_key": "symbols.lemon.icon"
+    },
+    "orange": {
+      "name_key": "symbols.orange.name",
+      "icon_key": "symbols.orange.icon"
+    },
+    "cherry": {
+      "name_key": "symbols.cherry.name",
+      "icon_key": "symbols.cherry.icon"
+    },
+    "bell": {
+      "name_key": "symbols.bell.name",
+      "icon_key": "symbols.bell.icon"
+    },
+    "diamond": {
+      "name_key": "symbols.diamond.name",
+      "icon_key": "symbols.diamond.icon"
+    },
+    "seven": {
+      "name_key": "symbols.seven.name",
+      "icon_key": "symbols.seven.icon"
+    },
+    "wild": {
+      "name_key": "symbols.wild.name",
+      "icon_key": "symbols.wild.icon"
+    },
+    "x2": {
+      "name_key": "symbols.x2.name",
+      "icon_key": "symbols.x2.icon"
+    }
+  },
+  "wheels": {
+    "wheel_1": {
+      "label_key": "wheel_1.label",
+      "categories": [
+        {
+          "id": "cat_1",
+          "weight": 1,
+          "name_key": "wheel_1.cat_1.name",
+          "description_key": "wheel_1.cat_1.description",
+          "color": "#ffbc4b",
+          "behavior": "cards"
+        },
+        {
+          "id": "cat_2_quiz",
+          "weight": 1,
+          "name_key": "wheel_1.cat_2_quiz.name",
+          "description_key": "wheel_1.cat_2_quiz.description",
+          "color": "#ff775d",
+          "behavior": "cards"
+        },
+        {
+          "id": "cat_3",
+          "weight": 1,
+          "name_key": "wheel_1.cat_3.name",
+          "description_key": "wheel_1.cat_3.description",
+          "color": "#e45a9a",
+          "behavior": "cards"
+        },
+        {
+          "id": "cat_4",
+          "weight": 1,
+          "name_key": "wheel_1.cat_4.name",
+          "description_key": "wheel_1.cat_4.description",
+          "color": "#a77aff",
+          "behavior": "cards"
+        },
+        {
+          "id": "cat_5",
+          "weight": 1,
+          "name_key": "wheel_1.cat_5.name",
+          "description_key": "wheel_1.cat_5.description",
+          "color": "#51b6ff",
+          "behavior": "cards"
+        },
+        {
+          "id": "cat_6",
+          "weight": 1,
+          "name_key": "wheel_1.cat_6.name",
+          "description_key": "wheel_1.cat_6.description",
+          "color": "#49d4c1",
+          "behavior": "cards"
+        },
+        {
+          "id": "cat_7_progression",
+          "weight": 1,
+          "name_key": "wheel_1.cat_7_progression.name",
+          "description_key": "wheel_1.cat_7_progression.description",
+          "color": "#f67330",
+          "behavior": "progression"
+        }
+      ]
+    },
+    "wheel_2": {
+      "label_key": "wheel_2.label",
+      "categories": [
+        {
+          "id": "w2_cat_1",
+          "weight": 1,
+          "name_key": "wheel_2.w2_cat_1.name",
+          "description_key": "wheel_2.w2_cat_1.description",
+          "color": "#e45a9a",
+          "behavior": "cards"
+        },
+        {
+          "id": "w2_cat_2",
+          "weight": 1,
+          "name_key": "wheel_2.w2_cat_2.name",
+          "description_key": "wheel_2.w2_cat_2.description",
+          "color": "#a77aff",
+          "behavior": "cards"
+        },
+        {
+          "id": "w2_cat_3",
+          "weight": 1,
+          "name_key": "wheel_2.w2_cat_3.name",
+          "description_key": "wheel_2.w2_cat_3.description",
+          "color": "#51b6ff",
+          "behavior": "cards"
+        },
+        {
+          "id": "w2_cat_4_finale",
+          "weight": 1,
+          "name_key": "wheel_2.w2_cat_4_finale.name",
+          "description_key": "wheel_2.w2_cat_4_finale.description",
+          "color": "#49d4c1",
+          "behavior": "finale"
+        }
+      ]
+    }
+  },
+  "progression": {
+    "initialWheel": "wheel_1",
+    "nextWheel": "wheel_2",
+    "choiceAt": 3,
+    "forceAt": 4
+  },
+  "final": {
+    "minSpins": 3,
+    "maxSpins": 5
+  },
+  "slots": {
+    "reels": 4,
+    "positions": 20,
+    "stone": "stone",
+    "wild": "wild",
+    "multiplier": "x2",
+    "target": {
+      "lemon": 5,
+      "orange": 4,
+      "cherry": 3,
+      "bell": 3,
+      "diamond": 2,
+      "seven": 1,
+      "wild": 1,
+      "x2": 1
+    },
+    "payout": {
+      "table": {
+        "lemon": [
+          0,
+          1000,
+          5000,
+          20000,
+          100000
+        ],
+        "orange": [
+          0,
+          2000,
+          8000,
+          40000,
+          200000
+        ],
+        "cherry": [
+          0,
+          3000,
+          12000,
+          60000,
+          300000
+        ],
+        "bell": [
+          0,
+          5000,
+          20000,
+          100000,
+          500000
+        ],
+        "diamond": [
+          0,
+          10000,
+          40000,
+          200000,
+          1000000
+        ],
+        "seven": [
+          0,
+          20000,
+          80000,
+          400000,
+          1000000
+        ]
+      },
+      "multiplier": 2,
+      "ordinary": 1000000,
+      "exceptional": {
+        "symbol": "seven",
+        "value": 5000000
+      },
+      "wildRequiresNatural": true
+    }
+  },
+  "grid": {
+    "rows": 7,
+    "columns": 7,
+    "initial": [
+      {
+        "kind": "symbol",
+        "symbol": "lemon",
+        "count": 13,
+        "units": 1
+      },
+      {
+        "kind": "symbol",
+        "symbol": "lemon",
+        "count": 1,
+        "units": 2
+      },
+      {
+        "kind": "symbol",
+        "symbol": "orange",
+        "count": 8,
+        "units": 1
+      },
+      {
+        "kind": "symbol",
+        "symbol": "orange",
+        "count": 1,
+        "units": 4
+      },
+      {
+        "kind": "symbol",
+        "symbol": "cherry",
+        "count": 7,
+        "units": 1
+      },
+      {
+        "kind": "symbol",
+        "symbol": "cherry",
+        "count": 1,
+        "units": 2
+      },
+      {
+        "kind": "symbol",
+        "symbol": "bell",
+        "count": 7,
+        "units": 1
+      },
+      {
+        "kind": "symbol",
+        "symbol": "bell",
+        "count": 1,
+        "units": 2
+      },
+      {
+        "kind": "effect",
+        "effect": "spin",
+        "count": 5
+      },
+      {
+        "kind": "effect",
+        "effect": "bonus",
+        "count": 5
+      }
+    ],
+    "reserves": [
+      {
+        "kind": "symbol",
+        "symbol": "diamond",
+        "count": 4,
+        "units": 1
+      },
+      {
+        "kind": "symbol",
+        "symbol": "diamond",
+        "count": 2,
+        "units": 2
+      },
+      {
+        "kind": "symbol",
+        "symbol": "seven",
+        "count": 2,
+        "units": 1
+      },
+      {
+        "kind": "symbol",
+        "symbol": "seven",
+        "count": 1,
+        "units": 2
+      },
+      {
+        "kind": "symbol",
+        "symbol": "wild",
+        "count": 2,
+        "units": 1
+      },
+      {
+        "kind": "symbol",
+        "symbol": "wild",
+        "count": 1,
+        "units": 2
+      },
+      {
+        "kind": "symbol",
+        "symbol": "x2",
+        "count": 2,
+        "units": 1
+      },
+      {
+        "kind": "symbol",
+        "symbol": "x2",
+        "count": 1,
+        "units": 2
+      }
+    ],
+    "replenishments": [
+      {
+        "kind": "symbol",
+        "symbol": "lemon",
+        "count": 5,
+        "units": 1
+      },
+      {
+        "kind": "symbol",
+        "symbol": "orange",
+        "count": 4,
+        "units": 1
+      },
+      {
+        "kind": "symbol",
+        "symbol": "cherry",
+        "count": 3,
+        "units": 1
+      },
+      {
+        "kind": "symbol",
+        "symbol": "bell",
+        "count": 3,
+        "units": 1
+      }
+    ],
+    "effects": {
+      "spin": {
+        "spins": 1,
+        "name_key": "effects.spin.name",
+        "icon_key": "effects.spin.icon"
+      },
+      "bonus": {
+        "spins": 1,
+        "name_key": "effects.bonus.name",
+        "icon_key": "effects.bonus.icon"
+      }
+    },
+    "ranks": {
+      "lemon": 1,
+      "orange": 2,
+      "cherry": 3,
+      "bell": 4,
+      "diamond": 5,
+      "seven": 6,
+      "wild": 7,
+      "x2": 8
+    }
+  },
+  "simulation": {
+    "games": 1000,
+    "maxTurns": 1000,
+    "acceptProbability": 0.85,
+    "successProbability": 0.7,
+    "continueAtChoice": true,
+    "targets": {
+      "q1": 100000,
+      "median": 250000,
+      "ordinary": 1000000,
+      "exceptional": 5000000
+    }
+  }
+}

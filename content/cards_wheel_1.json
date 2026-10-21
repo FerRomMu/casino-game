@@ -1,0 +1,136 @@
+[
+  {
+    "id": "wheel_1_cat_1_001",
+    "category": "cat_1",
+    "text_key": "wheel_1.cards.wheel_1_cat_1_001.text",
+    "resolution": "binary",
+    "reward": {
+      "success": 4,
+      "failure": 0
+    }
+  },
+  {
+    "id": "wheel_1_cat_1_002",
+    "category": "cat_1",
+    "text_key": "wheel_1.cards.wheel_1_cat_1_002.text",
+    "resolution": "binary",
+    "reward": {
+      "success": 4,
+      "failure": 0
+    }
+  },
+  {
+    "id": "wheel_1_cat_2_quiz_001",
+    "category": "cat_2_quiz",
+    "text_key": "wheel_1.cards.wheel_1_cat_2_quiz_001.text",
+    "resolution": "binary",
+    "reward": {
+      "success": 4,
+      "failure": 1
+    }
+  },
+  {
+    "id": "wheel_1_cat_2_quiz_002",
+    "category": "cat_2_quiz",
+    "text_key": "wheel_1.cards.wheel_1_cat_2_quiz_002.text",
+    "resolution": "binary",
+    "reward": {
+      "success": 4,
+      "failure": 1
+    }
+  },
+  {
+    "id": "wheel_1_cat_3_001",
+    "category": "cat_3",
+    "text_key": "wheel_1.cards.wheel_1_cat_3_001.text",
+    "resolution": "binary",
+    "reward": {
+      "success": 4,
+      "failure": 0
+    }
+  },
+  {
+    "id": "wheel_1_cat_3_002",
+    "category": "cat_3",
+    "text_key": "wheel_1.cards.wheel_1_cat_3_002.text",
+    "resolution": "binary",
+    "reward": {
+      "success": 4,
+      "failure": 0
+    }
+  },
+  {
+    "id": "wheel_1_cat_4_001",
+    "category": "cat_4",
+    "text_key": "wheel_1.cards.wheel_1_cat_4_001.text",
+    "resolution": "binary",
+    "reward": {
+      "success": 4,
+      "failure": 1
+    }
+  },
+  {
+    "id": "wheel_1_cat_4_002",
+    "category": "cat_4",
+    "text_key": "wheel_1.cards.wheel_1_cat_4_002.text",
+    "resolution": "binary",
+    "reward": {
+      "success": 4,
+      "failure": 1
+    }
+  },
+  {
+    "id": "wheel_1_cat_5_001",
+    "category": "cat_5",
+    "text_key": "wheel_1.cards.wheel_1_cat_5_001.text",
+    "resolution": "binary",
+    "reward": {
+      "success": 4,
+      "failure": 0
+    }
+  },
+  {
+    "id": "wheel_1_cat_5_002",
+    "category": "cat_5",
+    "text_key": "wheel_1.cards.wheel_1_cat_5_002.text",
+    "resolution": "binary",
+    "reward": {
+      "success": 4,
+      "failure": 0
+    }
+  },
+  {
+    "id": "wheel_1_cat_6_001",
+    "category": "cat_6",
+    "text_key": "wheel_1.cards.wheel_1_cat_6_001.text",
+    "resolution": "numeric",
+    "reward": {
+      "success": 5,
+      "failure": 0,
+      "byResult": [
+        0,
+        1,
+        3,
+        5
+      ]
+    },
+    "maximum": 3
+  },
+  {
+    "id": "wheel_1_cat_6_002",
+    "category": "cat_6",
+    "text_key": "wheel_1.cards.wheel_1_cat_6_002.text",
+    "resolution": "numeric",
+    "reward": {
+      "success": 5,
+      "failure": 0,
+      "byResult": [
+        0,
+        1,
+        3,
+        5
+      ]
+    },
+    "maximum": 3
+  }
+]
