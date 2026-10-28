@@ -3931,3 +3931,570 @@ body {
     letter-spacing: 0;
   }
 }
+
+/* The pay glass belongs to the cabinet and reflects its installed reel symbols. */
+.slots-scene .machine-theater,
+.slots-scene .final-stats + .machine-theater {
+  margin-top: 12px;
+}
+.payout-panel {
+  position: relative;
+  border: 2px solid #e7b655;
+  border-radius: 12px 12px 6px 6px;
+  padding: 8px 12px 5px;
+  margin-bottom: 8px;
+  background: linear-gradient(125deg, #291142, #140c29 55%, #2b1745);
+  box-shadow:
+    inset 0 0 0 2px #773d67,
+    inset 0 0 35px #b64ddd18,
+    0 0 18px #f7bd3524;
+}
+.payout-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.payout-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 21px;
+  color: #ffe7a2;
+  letter-spacing: 0.7px;
+}
+.payout-heading .art {
+  width: 24px;
+  height: 24px;
+}
+.payout-heading > div {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+}
+.payout-heading > div > span {
+  color: #c4a9d8;
+  font-size: 9px;
+}
+.payout-heading strong {
+  font-family: var(--display);
+  color: #d6ff98;
+  font-size: 22px;
+  text-shadow: 0 0 12px #9bff552b;
+}
+.payout-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 3px 2px;
+  table-layout: fixed;
+  font-variant-numeric: tabular-nums;
+}
+.payout-table th:first-child {
+  width: 34px;
+}
+.payout-table thead th {
+  height: 14px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #ceacce;
+}
+.payout-table tbody th {
+  padding: 0;
+}
+.payout-table tbody th .symbol {
+  width: 24px;
+  height: 24px;
+}
+.payout-table td {
+  height: 24px;
+  border-radius: 4px;
+  background: #ffffff05;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.payout-table .pay-available {
+  background: linear-gradient(#75482940, #48284155);
+  box-shadow: inset 0 0 0 1px #edc05b39;
+}
+.pay-normal {
+  color: #ffe49c;
+}
+.pay-multiplied {
+  color: #8eecff;
+}
+.pay-divider {
+  color: #a18bb2;
+  margin: 0 4px;
+  font-size: 9px;
+}
+.pay-unavailable {
+  color: #735c88;
+}
+.pay-hit {
+  outline: 2px solid #d9ff91;
+  box-shadow: 0 0 14px #a8ff5366 !important;
+}
+.payout-jackpot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid #bd7caa55;
+  border-radius: 5px;
+  padding: 3px 9px;
+  margin: 4px 3px 0;
+  background: linear-gradient(90deg, #47142e, #362039);
+}
+.payout-jackpot-symbols {
+  display: flex;
+}
+.payout-jackpot-symbols .symbol {
+  width: 23px;
+  height: 23px;
+}
+.payout-jackpot > span:not(.payout-jackpot-symbols) {
+  flex: 1;
+  text-align: left;
+  font-size: 9px;
+  color: #dcbccd;
+}
+.payout-jackpot small {
+  margin-left: 6px;
+  color: #bba6c9;
+  font-size: 8px;
+}
+.payout-jackpot > b {
+  font-family: var(--display);
+  font-size: 20px;
+  color: #c19fae;
+  white-space: nowrap;
+}
+.payout-jackpot.is-locked .payout-jackpot-symbols {
+  opacity: 0.45;
+  filter: grayscale(0.65);
+}
+.payout-jackpot.is-available {
+  border-color: #ffcf65;
+  background: linear-gradient(90deg, #682134, #7c4425);
+}
+.payout-jackpot.is-available b {
+  color: #ffe28a;
+}
+.payout-jackpot.is-available small {
+  color: #ccff99;
+}
+.payout-legend {
+  font-size: 8px;
+  color: #b9a0ca;
+  margin: 4px 0 0;
+  line-height: 1.3;
+}
+.payout-panel + .slot-machine .machine-crown {
+  display: none;
+}
+.slots-scene .reel {
+  --cell-height: clamp(32px, 7.5cqh, 68px);
+}
+.slots-scene .scene-heading h1 {
+  font-size: clamp(24px, 4cqh, 35px);
+}
+.slots-scene .scene-heading .eyebrow {
+  display: none;
+}
+@media (max-width: 600px) and (orientation: portrait) {
+  .slots-scene {
+    padding: 6px 10px;
+  }
+  .slots-scene .machine-theater,
+  .slots-scene .final-stats + .machine-theater {
+    margin-top: 8px;
+  }
+  .payout-panel {
+    padding: 5px 5px 3px;
+    border-radius: 8px 8px 5px 5px;
+    margin-bottom: 5px;
+  }
+  .payout-heading {
+    gap: 4px;
+    margin-bottom: 2px;
+  }
+  .payout-heading h2 {
+    font-size: 17px;
+    gap: 3px;
+    letter-spacing: 0;
+  }
+  .payout-heading .art {
+    width: 18px;
+    height: 18px;
+  }
+  .payout-heading strong {
+    font-size: 18px;
+  }
+  .payout-heading > div {
+    gap: 3px;
+  }
+  .payout-heading > div > span {
+    font-size: 7px;
+  }
+  .payout-table {
+    border-spacing: 2px 1px;
+  }
+  .payout-table th:first-child {
+    width: 25px;
+  }
+  .payout-table thead th {
+    height: 11px;
+    font-size: 8px;
+  }
+  .payout-table tbody th .symbol {
+    width: 19px;
+    height: 19px;
+  }
+  .payout-table td {
+    height: 19px;
+    font-size: 10px;
+  }
+  .pay-divider {
+    margin: 0 2px;
+    font-size: 7px;
+  }
+  .payout-jackpot {
+    padding: 2px 4px;
+    gap: 4px;
+    margin-top: 3px;
+  }
+  .payout-jackpot-symbols .symbol {
+    width: 17px;
+    height: 17px;
+  }
+  .payout-jackpot > span:not(.payout-jackpot-symbols) {
+    font-size: 8px;
+  }
+  .payout-jackpot small {
+    font-size: 6px;
+    margin-left: 3px;
+  }
+  .payout-jackpot > b {
+    font-size: 17px;
+  }
+  .payout-legend {
+    font-size: 7px;
+    margin-top: 3px;
+  }
+  .slots-scene .reel {
+    --cell-height: clamp(29px, 6.5cqh, 49px);
+  }
+  .slots-scene .final-stats {
+    margin-top: 5px;
+  }
+  .slots-scene .final-stats > div {
+    padding: 5px 3px;
+  }
+  .slots-scene .final-actions {
+    margin-top: 8px;
+  }
+  .slots-scene .final-actions > p,
+  .slots-scene .finish-actions > p {
+    display: none;
+  }
+  .slots-scene .prize-board {
+    margin-top: 7px;
+    padding: 4px;
+  }
+  .slots-scene .prize-board > span {
+    font-size: 20px;
+  }
+  .slots-scene .prize-board > strong {
+    font-size: calc(22px * var(--prize-scale, 1));
+  }
+}
+.payout-table tbody th {
+  font-size: 0;
+  line-height: 0;
+}
+@media (max-width: 600px) and (orientation: portrait) {
+  .slots-scene .prize-board > span {
+    font-size: 22px;
+  }
+}
+/* Short displays keep a readable pay glass and the paying row of the reels. */
+@media (max-height: 700px) and (max-width: 600px) and (orientation: portrait),
+  (max-height: 650px) and (orientation: landscape) {
+  .slots-scene .payout-panel {
+    padding: 3px 5px;
+    margin-bottom: 4px;
+  }
+  .slots-scene .payout-heading {
+    margin: 0;
+  }
+  .slots-scene .payout-heading h2 {
+    font-size: 14px;
+    letter-spacing: 0;
+    gap: 3px;
+  }
+  .slots-scene .payout-heading .art {
+    width: 14px;
+    height: 14px;
+  }
+  .slots-scene .payout-heading strong {
+    font-size: 15px;
+  }
+  .slots-scene .payout-heading > div > span {
+    font-size: 7px;
+  }
+  .slots-scene .payout-table {
+    border-spacing: 2px 1px;
+  }
+  .slots-scene .payout-table th:first-child {
+    width: 18px;
+  }
+  .slots-scene .payout-table thead th {
+    font-size: 7px;
+    height: 9px;
+  }
+  .slots-scene .payout-table tbody th .symbol {
+    width: 13px;
+    height: 13px;
+  }
+  .slots-scene .payout-table td {
+    height: 14px;
+    font-size: 10px;
+  }
+  .slots-scene .pay-divider {
+    margin: 0 2px;
+  }
+  .slots-scene .payout-jackpot {
+    padding: 1px 4px;
+    margin-top: 2px;
+    gap: 4px;
+  }
+  .slots-scene .payout-jackpot-symbols .symbol {
+    width: 14px;
+    height: 14px;
+  }
+  .slots-scene .payout-jackpot > span:not(.payout-jackpot-symbols) {
+    font-size: 7px;
+  }
+  .slots-scene .payout-jackpot small {
+    font-size: 6px;
+    margin-left: 3px;
+  }
+  .slots-scene .payout-jackpot > b {
+    font-size: 14px;
+  }
+  .slots-scene .payout-legend {
+    font-size: 6px;
+    margin-top: 2px;
+  }
+  .slots-scene .reel {
+    --cell-height: 43px;
+  }
+  .slots-scene .reel-window {
+    height: var(--cell-height);
+  }
+  .slots-scene .reel-static .adjacent-symbol {
+    display: none;
+  }
+  .slots-scene .machine-marquee {
+    height: 21px;
+  }
+  .slots-scene .machine-marquee b {
+    font-size: 17px;
+  }
+  .slots-scene .machine-base {
+    height: 14px;
+    padding: 1px 8px;
+  }
+  .slots-scene .machine-base b {
+    font-size: 6px;
+  }
+  .slots-scene .reel-frame {
+    padding: 4px;
+  }
+  .slots-scene .slot-machine {
+    padding: 0 5px 4px;
+    border-radius: 8px;
+  }
+  .slots-scene .machine-body {
+    padding: 0 10px;
+  }
+  .slots-scene .machine-column {
+    width: 10px;
+  }
+  .slots-scene .token-queue {
+    gap: 2px;
+    margin-top: 6px;
+    min-height: 0;
+  }
+  .slots-scene .queue-token {
+    width: 20px;
+    height: 20px;
+  }
+  .slots-scene .fine-print {
+    margin-top: 2px;
+    font-size: 6px !important;
+  }
+}
+@media (max-height: 700px) and (max-width: 600px) and (orientation: portrait) {
+  .cabinet:has(.slots-scene) .cabinet-bottom {
+    display: none;
+  }
+  .cabinet:has(.slots-scene) .cabinet-heading .round-label {
+    display: none;
+  }
+  .slots-scene {
+    padding: 3px 8px;
+  }
+  .slots-scene .scene-heading {
+    display: none;
+  }
+  .slots-scene .final-stats {
+    margin: 0;
+  }
+  .slots-scene .final-stats > div {
+    padding: 3px;
+  }
+  .slots-scene .final-stats > div > b {
+    font-size: 16px;
+    margin-top: 2px;
+  }
+  .slots-scene .final-spin-bank > b {
+    font-size: 22px !important;
+  }
+  .slots-scene .final-stats > div > span {
+    font-size: 5px;
+  }
+  .slots-scene .machine-theater,
+  .slots-scene .final-stats + .machine-theater {
+    margin-top: 5px;
+  }
+  .slots-scene .final-actions {
+    margin-top: 7px;
+  }
+  .slots-scene .final-actions .primary {
+    min-height: 44px;
+    padding: 7px 24px;
+  }
+  .slots-scene .prize-board {
+    margin: 5px auto 0;
+    padding: 2px;
+  }
+  .slots-scene .prize-board > span {
+    font-size: 18px;
+  }
+  .slots-scene .prize-board > strong {
+    font-size: calc(18px * var(--prize-scale, 1));
+  }
+  .slots-scene .finish-actions {
+    margin-top: 5px;
+  }
+}
+@media (max-height: 650px) and (orientation: landscape) {
+  .slots-scene {
+    display: grid;
+    grid-template-columns: 145px minmax(0, 1fr);
+    gap: 5px 10px;
+    padding: 5px 10px;
+    align-items: center;
+  }
+  .slots-scene > .scene-heading,
+  .slots-scene > .final-stats,
+  .slots-scene > .prize-board,
+  .slots-scene > .final-actions,
+  .slots-scene > .finish-actions,
+  .slots-scene > .fine-print {
+    grid-column: 1;
+    margin: 0;
+  }
+  .slots-scene .scene-heading h1 {
+    font-size: 20px;
+  }
+  .slots-scene .scene-heading p,
+  .slots-scene .final-actions > p,
+  .slots-scene .finish-actions > p {
+    display: none;
+  }
+  .slots-scene .final-stats {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+  .slots-scene .final-stats > div {
+    padding: 3px 5px;
+  }
+  .slots-scene .final-stats > div > b {
+    font-size: 20px;
+    margin: 2px 0 0;
+  }
+  .slots-scene .final-stats > div > span {
+    font-size: 6px;
+  }
+  .slots-scene .final-spin-bank {
+    flex-direction: row;
+    gap: 8px;
+  }
+  .slots-scene .final-spin-bank > b {
+    font-size: 20px !important;
+  }
+  .slots-scene .machine-theater,
+  .slots-scene .final-stats + .machine-theater {
+    grid-column: 2;
+    grid-row: 1 / span 5;
+    margin: 0;
+    width: 100%;
+  }
+  .slots-scene .final-actions .primary,
+  .slots-scene .finish-actions .primary {
+    min-width: 0;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px;
+    font-size: 22px;
+  }
+  .slots-scene .prize-board {
+    padding: 3px;
+  }
+  .slots-scene .prize-board > span {
+    font-size: 17px;
+  }
+  .slots-scene .prize-board > strong {
+    font-size: 22px;
+  }
+  .slots-scene .spinning-label {
+    display: none;
+  }
+}
+.slots-scene {
+  --slot-cell-height: clamp(32px, 7.5cqh, 68px);
+}
+.slots-scene .reel {
+  --cell-height: var(--slot-cell-height);
+}
+.slots-scene .payline {
+  height: var(--slot-cell-height);
+  top: calc(50% - var(--slot-cell-height) / 2);
+}
+@media (max-width: 600px) and (orientation: portrait) {
+  .slots-scene {
+    --slot-cell-height: clamp(29px, 6.5cqh, 49px);
+  }
+}
+@media (max-height: 700px) and (max-width: 600px) and (orientation: portrait),
+  (max-height: 650px) and (orientation: landscape) {
+  .slots-scene {
+    --slot-cell-height: 43px;
+  }
+  .slots-scene .reel-shine {
+    box-shadow:
+      inset 0 4px 6px #10051e88,
+      inset 0 -4px 6px #10051e88;
+  }
+}
+@media (max-height: 700px) and (max-width: 600px) and (orientation: portrait) {
+  .slots-scene .final-actions .primary {
+    min-height: 52px;
+  }
+}

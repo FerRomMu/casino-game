@@ -188,5 +188,20 @@
   "ui.previewExample": "Podrías ganar",
   "ui.accumulated": "POZO ACUMULADO",
   "ui.winningSymbol": "PREMIA",
-  "ui.multiplierApplied": "DUPLICA"
+  "ui.multiplierApplied": "DUPLICA",
+  "ui.prizeTable": "Tabla de premios",
+  "ui.prizeTableMaximum": "Hasta",
+  "ui.prizeTableSymbol": "Símbolo",
+  "ui.prizeTableUnavailable": "Todavía no puede salir",
+  "ui.prizeTableNormal": "Premio normal",
+  "ui.prizeTableMultiplied": "Premio con multiplicador",
+  "ui.prizeTableLegend": "Incluye Wild",
+  "ui.prizeTableUnits": "K = mil · M = millón",
+  "ui.prizeTableJackpot": "Jackpot",
+  "ui.prizeTableLocked": "Bloqueado",
+  "ui.prizeTableAvailable": "Disponible",
+  "ui.prizeTableEmpty": "Incorporá fichas para habilitar premios",
+  "ui.amountThousand": "K",
+  "ui.amountMillion": "M",
+  "ui.prizeTableNormalShort": "Normal"
 }

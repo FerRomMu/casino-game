@@ -1,3 +1,4 @@
+import { attainablePrizes } from "../domain/slots.js";
 import { finalBank } from "../domain/game.js";
 import { wheelSectors } from "../domain/random.js";
 
@@ -111,6 +112,49 @@ export function createRenderer(config, t) {
     return `<section class="scene grid-scene ${l.enter ? "scene-enter" : ""}"><div class="scene-heading"><span class="eyebrow">${text("ui.collecting")}</span><h1>${text("ui.grid")}</h1><p>${text("ui.gridHint")}</p></div><div class="grid-layout"><div class="board-cabinet">${bulbs(18, "board-top")}<div class="tile-grid" style="--columns:${config.grid.columns}">${cells.map((tile, i) => `<div class="tile ${!tile ? "off" : ""} ${l.upgradedCells?.includes(i) ? "upgraded" : ""}" data-cell="${i}">${tileContent(tile)}</div>`).join("")}</div>${bulbs(18, "board-bottom")}<div class="board-counter">${text("ui.draw")} <b>${Math.min(l.drawIndex + 1, s.extraction?.draws.length ?? 0)} / ${s.extraction?.draws.length ?? 0}</b></div></div><div class="collected-tray"><div class="tray-heading">${art("coin")}<span>${text("ui.collected")}</span></div><div class="collected-items" id="collected">${collected.map((tile, i) => `<div class="collected-token" style="--i:${i}">${tileContent(tile)}</div>`).join("")}${!collected.length ? '<span class="tray-wait">✦</span>' : ""}</div></div></div></section>`;
   }
 
+  let prizeTableKey = null,
+    prizeTable = null;
+  function payoutTable(s, l) {
+    const reels = l.displayReels ?? s.reels;
+    const key = JSON.stringify(reels.map((reel) => [...new Set(reel)].sort()));
+    if (key !== prizeTableKey) {
+      prizeTable = attainablePrizes(reels, config.slots);
+      prizeTableKey = key;
+    }
+    const compact = (value) => {
+      const unit = config.ui.prizeTable.units.find(
+        (unit) => value >= unit.minimum,
+      );
+      return (
+        numberFormat.format(value / (unit?.divisor ?? 1)) +
+        (unit ? text(unit.suffix_key) : "")
+      );
+    };
+    const numberFormat = new Intl.NumberFormat(config.ui.locale, {
+      maximumFractionDigits: config.ui.prizeTable.fractionDigits,
+    });
+    const result =
+      ["final_result", "final_ready", "finished"].includes(s.phase) &&
+      l.prizeVisible &&
+      !l.slotSpinning
+        ? s.lastSpin
+        : null;
+    const amount = (value, multiplied = false) =>
+      value == null
+        ? `<span class="pay-unavailable" aria-label="${text("ui.prizeTableUnavailable")}">—</span>`
+        : `<span class="${multiplied ? "pay-multiplied" : "pay-normal"}" data-payout="${value}" title="${text(multiplied ? "ui.prizeTableMultiplied" : "ui.prizeTableNormal")} · ${money(value)}" aria-label="${text(multiplied ? "ui.prizeTableMultiplied" : "ui.prizeTableNormal")} ${money(value)}">${compact(value)}</span>`;
+    const hasMultiplier = prizeTable.rows.some((row) =>
+      row.counts.some((cell) => cell.multiplied != null),
+    );
+    const columns = Array.from({ length: reels.length }, (_, i) => i + 1);
+    return `<section class="payout-panel" aria-label="${text("ui.prizeTable")}" data-prize-maximum="${prizeTable.maximum}">
+      <div class="payout-heading"><h2>${art("crown")}${text("ui.prizeTable")}</h2><div><span>${text("ui.prizeTableMaximum")}</span><strong>${money(prizeTable.maximum)}</strong></div></div>
+      <table class="payout-table"><thead><tr><th scope="col"><span class="sr-only">${text("ui.prizeTableSymbol")}</span>${e(config.ui.currency)}</th>${columns.map((count) => `<th scope="col">×${count}</th>`).join("")}</tr></thead><tbody>${prizeTable.rows.map((row) => `<tr data-pay-symbol="${e(row.symbol)}"><th scope="row">${symbol(row.symbol)}<span class="sr-only">${text(config.symbols[row.symbol].name_key)}</span></th>${row.counts.map((cell) => `<td data-pay-count="${cell.count}" class="${cell.normal != null || cell.multiplied != null ? "pay-available" : "pay-locked"} ${result?.payout > 0 && !result.exceptional && result.winningSymbol === row.symbol && result.winningIndices.length === cell.count ? "pay-hit" : ""}">${amount(cell.normal)}${cell.multiplied != null ? `<span class="pay-divider" aria-hidden="true">/</span>${amount(cell.multiplied, true)}` : ""}</td>`).join("")}</tr>`).join("")}</tbody></table>
+      <div class="payout-jackpot ${prizeTable.jackpot.available ? "is-available" : "is-locked"} ${result?.exceptional ? "pay-hit" : ""}" data-jackpot-available="${prizeTable.jackpot.available}"><span class="payout-jackpot-symbols">${columns.map(() => symbol(config.slots.payout.exceptional.symbol)).join("")}</span><span>${text("ui.prizeTableJackpot")}<small>${text(prizeTable.jackpot.available ? "ui.prizeTableAvailable" : "ui.prizeTableLocked")}</small></span><b>${money(prizeTable.jackpot.payout)}</b></div>
+      <p class="payout-legend">${prizeTable.maximum === 0 ? text("ui.prizeTableEmpty") : `${hasMultiplier ? `${text("ui.prizeTableNormalShort")} / ×${number(config.slots.payout.multiplier)} · ` : ""}${text("ui.prizeTableLegend")} · ${text("ui.prizeTableUnits")}`}</p>
+    </section>`;
+  }
+
   function machine(s, line, l) {
     const reels = l.displayReels ?? s.reels;
     const stops =
@@ -181,7 +225,7 @@ export function createRenderer(config, t) {
             : preview
               ? "ui.preview"
               : "ui.installing";
-    return `<section class="scene slots-scene ${l.enter ? "scene-enter" : ""} ${l.prizeVisible ? "show-prize" : ""}"><div class="scene-heading"><span class="eyebrow">${text(final ? "ui.finalBadge" : preview ? "ui.previewBadge" : "ui.machine")}</span><h1>${text(title)}</h1>${!final && !preview ? `<p>${text("ui.installingHint")}</p>` : ""}</div>${final ? `<div class="final-stats"><div class="final-spin-bank"><span>${text("ui.remaining")}</span><b data-remaining-spins>${number(s.spins)}</b></div><div class="accumulated-bank"><span>${text("ui.accumulated")}</span><b data-accumulated data-value="${bank.accumulated}">${money(bank.accumulated)}</b></div><div class="pot-bank"><span>${text("ui.pot")}</span><b data-pot data-value="${bank.maximum}">${money(bank.maximum)}</b></div></div>` : ""}<div class="machine-theater">${machine(s, line, l)}${!final && !preview ? `<div class="token-queue" aria-label="${text("ui.collected")}">${s.extraction.tokens.map((token, i) => `<div data-queue="${i}" class="queue-token">${tileContent({ kind: "symbol", ...token })}</div>`).join("")}</div>` : ""}</div>${preview || s.phase === "final_result" || finished ? `<div class="prize-board ${l.prizeVisible || finished ? "is-visible" : ""} ${preview && s.newMaximum ? "new-maximum" : ""}" style="--prize-scale:${[...config.ui.prizeTiers].reverse().find((tier) => prize >= tier.minimum)?.scale ?? 1}" data-preview-kind="${preview ? (s.newMaximum ? "maximum" : "random") : "final"}" aria-live="polite"><span>${text(finished ? "ui.total" : preview ? (s.newMaximum ? "ui.previewMax" : "ui.previewExample") : prize > 0 ? "ui.prize" : "ui.zero")}</span><strong data-prize data-value="${prize}">${money(prize)}</strong></div>` : ""}${preview ? `<p class="fine-print">${text("ui.previewNote")}</p>` : ""}${s.phase === "final_ready" ? `<div class="final-actions">${button("final-spin", "ui.finalSpin", "primary green-button final-spin", l.busy ? "disabled" : "")}<p>${text("ui.finalSpinHint")}</p></div>` : ""}${s.phase === "finale" ? `<div class="final-intro"><b>${number(s.spins)}</b><span>${text("ui.finalIntroLabel")}</span></div>` : ""}${s.phase === "final_result" && l.slotSpinning ? `<p class="spinning-label">${text("ui.prizePending")}</p>` : ""}${finished ? `<div class="finish-actions"><p>${text("ui.finishedHint")}</p>${button("restart", "app.restart", "primary green-button")}</div>` : ""}</section>`;
+    return `<section class="scene slots-scene ${l.enter ? "scene-enter" : ""} ${l.prizeVisible ? "show-prize" : ""}"><div class="scene-heading"><span class="eyebrow">${text(final ? "ui.finalBadge" : preview ? "ui.previewBadge" : "ui.machine")}</span><h1>${text(title)}</h1>${!final && !preview ? `<p>${text("ui.installingHint")}</p>` : ""}</div>${final ? `<div class="final-stats"><div class="final-spin-bank"><span>${text("ui.remaining")}</span><b data-remaining-spins>${number(s.spins)}</b></div><div class="accumulated-bank"><span>${text("ui.accumulated")}</span><b data-accumulated data-value="${bank.accumulated}">${money(bank.accumulated)}</b></div><div class="pot-bank"><span>${text("ui.pot")}</span><b data-pot data-value="${bank.maximum}">${money(bank.maximum)}</b></div></div>` : ""}<div class="machine-theater">${payoutTable(s, l)}${machine(s, line, l)}${!final && !preview ? `<div class="token-queue" aria-label="${text("ui.collected")}">${s.extraction.tokens.map((token, i) => `<div data-queue="${i}" class="queue-token">${tileContent({ kind: "symbol", ...token })}</div>`).join("")}</div>` : ""}</div>${preview || s.phase === "final_result" || finished ? `<div class="prize-board ${l.prizeVisible || finished ? "is-visible" : ""} ${preview && s.newMaximum ? "new-maximum" : ""}" style="--prize-scale:${[...config.ui.prizeTiers].reverse().find((tier) => prize >= tier.minimum)?.scale ?? 1}" data-preview-kind="${preview ? (s.newMaximum ? "maximum" : "random") : "final"}" aria-live="polite"><span>${text(finished ? "ui.total" : preview ? (s.newMaximum ? "ui.previewMax" : "ui.previewExample") : prize > 0 ? "ui.prize" : "ui.zero")}</span><strong data-prize data-value="${prize}">${money(prize)}</strong></div>` : ""}${preview ? `<p class="fine-print">${text("ui.previewNote")}</p>` : ""}${s.phase === "final_ready" ? `<div class="final-actions">${button("final-spin", "ui.finalSpin", "primary green-button final-spin", l.busy ? "disabled" : "")}<p>${text("ui.finalSpinHint")}</p></div>` : ""}${s.phase === "finale" ? `<div class="final-intro"><b>${number(s.spins)}</b><span>${text("ui.finalIntroLabel")}</span></div>` : ""}${s.phase === "final_result" && l.slotSpinning ? `<p class="spinning-label">${text("ui.prizePending")}</p>` : ""}${finished ? `<div class="finish-actions"><p>${text("ui.finishedHint")}</p>${button("restart", "app.restart", "primary green-button")}</div>` : ""}</section>`;
   }
 
   function progressionScene(s, l) {

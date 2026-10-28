@@ -22,13 +22,14 @@ La partida se ejecuta en memoria. Cada carga obtiene una semilla nueva del naveg
 
 ![Interfaz de escritorio](docs/ui-desktop.png)
 
-[Ver tragamonedas](docs/ui-slots.png) · [Ver versión móvil](docs/ui-mobile.png)
+[Ver tragamonedas](docs/ui-slots.png) · [Ver tabla con máquina completa](docs/ui-prizes.png) · [Ver versión móvil](docs/ui-mobile.png)
 
 ## Qué se puede probar
 
 - Dos ruletas con sectores ponderados: el tamaño visual y la selección usan las mismas probabilidades normalizadas.
 - Selección de carta boca abajo, aceptación o rechazo sin penalización, retos binarios y resultados numéricos.
 - Conversión automática de puntos en extracciones del tablero 7 × 7, incorporación de especiales y reemplazo de piedras en cuatro rodillos de veinte posiciones.
+- Tabla de premios encima de los rodillos, actualizada durante cada incorporación. Muestra sólo importes alcanzables por la composición actual, incluyendo Wild y multiplicador; las combinaciones imposibles quedan apagadas y el jackpot exige el símbolo excepcional en cada rodillo. En pantallas bajas se conserva la fila central que paga para mantener legibles la tabla y los controles.
 - Ruleta con sectores de colores, relieve dorado, luces animadas e iconos por categoría. Símbolos ilustrados en SVG, tipografías locales y máquina con rodillos profundos y columnas doradas.
 - Animaciones de cartas, selección de fichas, vuelos reales hacia el inventario y los rodillos, reemplazos del tablero, fuego y premios. Las fichas recogidas se muestran después de extraerse; los rodillos frenan de a uno.
 - Protección frente a clicks repetidos durante las secuencias. La ayuda se puede abrir durante las animaciones sin reemplazar ni interrumpir la escena en curso.
@@ -62,6 +63,8 @@ Las cartas usan `text_key` y `category`; ninguna regla depende del texto del des
 Los mazos se agotan sin repetir cartas; al agotarse una categoría, se habilita nuevamente su mazo. Rechazar no cambia puntos, fichas, tiradas ni progresión. La carta extraída queda registrada como usada.
 
 Las claves ausentes se muestran como `MISSING:<key>` en desarrollo y como texto vacío en la distribución de producción.
+
+La tabla usa `attainablePrizes(reels, config.slots)` del dominio: enumera las combinaciones disponibles y aplica el mismo evaluador que las tiradas reales. No consume azar ni modifica la partida. Las abreviaturas de importes se configuran en `ui.prizeTable`; el importe exacto queda disponible en cada celda.
 
 Los campos `art` de símbolos, efectos y categorías referencian ilustraciones de `assets/casino.svg`. Si un símbolo o efecto no declara ilustración, utiliza su `icon_key` como alternativa. El frenado final se configura con `ui.timings.finalReelStop` (primera pausa), `finalReelStep` (incremento entre pausas) y `finalReelSettle` (asentamiento final); las muestras conservan `reelStop`. Los tiempos de las secuencias, cantidad de luces, preferencia inicial de sonido y umbral de efectos para fichas especiales están en `ui`. Las fuentes y las ilustraciones se sirven localmente y se incluyen en el build: la demo no requiere servicios externos para dibujar la interfaz.
 

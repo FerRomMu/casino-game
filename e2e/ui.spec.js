@@ -811,3 +811,176 @@ test("final reels stop left to right with growing pauses and never reveal the ba
     "0",
   );
 });
+
+test("pay table updates as symbols are installed and matches the domain before the preview", async ({
+  page,
+}) => {
+  const config = await prepare(page, {
+    force: { wheel_1: "cat_1" },
+    reduced: false,
+    timings: { insertToken: 50, previewPrize: 1000 },
+  });
+  const { createGame, transition } = await import("../src/domain/game.js");
+  const { seededRandom } = await import("../src/domain/random.js");
+  const { attainablePrizes } = await import("../src/domain/slots.js");
+  const decks = {
+    wheel_1: JSON.parse(
+      await readFile(
+        new URL("../content/cards_wheel_1.json", import.meta.url),
+        "utf8",
+      ),
+    ),
+    wheel_2: JSON.parse(
+      await readFile(
+        new URL("../content/cards_wheel_2.json", import.meta.url),
+        "utf8",
+      ),
+    ),
+  };
+  const rng = seededRandom(config.seed),
+    context = { config, decks, rng };
+  let state = createGame(config, rng);
+  for (const action of [
+    { type: "SPIN_WHEEL" },
+    { type: "SHOW_CARDS" },
+    { type: "PICK_CARD" },
+    { type: "ACCEPT" },
+    { type: "RESOLVE", success: true },
+    { type: "EXECUTE_GRID" },
+    { type: "INSERT_TOKENS" },
+  ])
+    state = transition(state, action, context);
+  const expected = attainablePrizes(state.reels, config.slots);
+  await page.evaluate(() => {
+    window.payTables = [];
+    new MutationObserver(() => {
+      const panel = document.querySelector(".payout-panel");
+      if (!panel) return;
+      window.payTables.push({
+        filled: Number(
+          document.querySelector("[data-filled]").textContent.split("/")[0],
+        ),
+        maximum: Number(panel.dataset.prizeMaximum),
+        rows: [...panel.querySelectorAll("[data-pay-symbol]")].map((row) => ({
+          symbol: row.dataset.paySymbol,
+          counts: [...row.querySelectorAll("[data-pay-count]")].map((cell) => ({
+            count: Number(cell.dataset.payCount),
+            normal: cell.querySelector(".pay-normal")
+              ? Number(cell.querySelector(".pay-normal").dataset.payout)
+              : null,
+            multiplied: cell.querySelector(".pay-multiplied")
+              ? Number(cell.querySelector(".pay-multiplied").dataset.payout)
+              : null,
+          })),
+        })),
+      });
+    }).observe(document.querySelector("#app"), {
+      childList: true,
+      subtree: true,
+    });
+  });
+  await offer(page);
+  await click(page, "accept");
+  await ready(page, "challenge");
+  await click(page, "success");
+  await page.waitForSelector('#stage[data-phase="wheel"][data-busy="false"]');
+  const tables = await page.evaluate(() => window.payTables);
+  expect(tables[0].filled).toBe(0);
+  expect(tables[0].maximum).toBe(0);
+  expect(
+    tables.some(
+      (t) => t.filled > 0 && t.filled < state.insertion.length && t.maximum > 0,
+    ),
+  ).toBe(true);
+  expect(tables.at(-1).rows).toEqual(expected.rows);
+  expect(tables.at(-1).maximum).toBe(expected.maximum);
+});
+
+for (const [width, height] of [
+  [320, 568],
+  [390, 844],
+  [844, 390],
+  [1440, 900],
+]) {
+  test(`complete prize table fits above reels at ${width}x${height}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height });
+    // Start a complete machine through the real app, so its fitting, rendering and
+    // click handling are exercised without adding any fixture hooks to production.
+    const source = await readFile(
+      new URL("../src/domain/game.js", import.meta.url),
+      "utf8",
+    );
+    await page.route("**/src/domain/game.js", (route) =>
+      route.fulfill({
+        contentType: "text/javascript",
+        body:
+          source.replace(
+            "export function createGame(",
+            "function fixtureBaseGame(",
+          ) +
+          `
+    export function createGame(config,rng,participantId) {
+      const state=fixtureBaseGame(config,rng,participantId);
+      state.reels=Array.from({length:config.slots.reels},()=>Object.entries(config.slots.target).flatMap(([id,count])=>Array(count).fill(id)));
+      state.preview=analyzeSlots(state.reels,config.slots);
+      state.phase='final_ready';state.wheel=config.progression.nextWheel;state.spins=config.final.maxSpins;
+      return state;
+    }
+  `,
+      }),
+    );
+    await page.goto("/");
+    await ready(page, "final_ready");
+    await page.evaluate(() => document.fonts.ready);
+    await expect(page.locator(".payout-panel")).toBeVisible();
+    await expect(page.locator("[data-jackpot-available]")).toHaveAttribute(
+      "data-jackpot-available",
+      "true",
+    );
+    await expect(page.locator("[data-prize-maximum]")).toHaveAttribute(
+      "data-prize-maximum",
+      String(original.slots.payout.exceptional.value),
+    );
+    await expect(async () => {
+      const geometry = await page.evaluate(() => {
+        const panel = document
+            .querySelector(".payout-panel")
+            .getBoundingClientRect(),
+          reels = document
+            .querySelector(".slot-machine")
+            .getBoundingClientRect(),
+          button = document
+            .querySelector('[data-action="final-spin"]')
+            .getBoundingClientRect();
+        return {
+          panel: panel.toJSON(),
+          reels: reels.toJSON(),
+          button: button.toJSON(),
+          overflow: [...document.querySelectorAll(".payout-panel td")].filter(
+            (n) => n.scrollWidth > n.clientWidth + 1,
+          ).length,
+        };
+      });
+      expect(geometry.panel.bottom).toBeLessThanOrEqual(geometry.reels.top + 1);
+      expect(geometry.panel.top).toBeGreaterThanOrEqual(0);
+      expect(geometry.panel.right).toBeLessThanOrEqual(width + 1);
+      expect(geometry.button.bottom).toBeLessThanOrEqual(height);
+      expect(geometry.button.height).toBeGreaterThanOrEqual(40);
+      expect(geometry.overflow).toBe(0);
+    }).toPass({ timeout: 2000 });
+    await contentFits(page);
+    await page.screenshot({ path: `artifacts/paytable-live-${width}.png` });
+    const payouts = await page
+      .locator("[data-payout]")
+      .evaluateAll((nodes) => nodes.map((n) => n.dataset.payout));
+    await click(page, "final-spin");
+    await ready(page, "final_ready");
+    expect(
+      await page
+        .locator("[data-payout]")
+        .evaluateAll((nodes) => nodes.map((n) => n.dataset.payout)),
+    ).toEqual(payouts);
+  });
+}

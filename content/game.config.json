@@ -54,7 +54,22 @@
         "minimum": 1000000,
         "scale": 1.7
       }
-    ]
+    ],
+    "prizeTable": {
+      "fractionDigits": 1,
+      "units": [
+        {
+          "minimum": 1000000,
+          "divisor": 1000000,
+          "suffix_key": "ui.amountMillion"
+        },
+        {
+          "minimum": 1000,
+          "divisor": 1000,
+          "suffix_key": "ui.amountThousand"
+        }
+      ]
+    }
   },
   "symbols": {
     "stone": {

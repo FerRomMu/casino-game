@@ -290,3 +290,57 @@ test('maximum final bank includes accumulated winnings and converges to the actu
   assert.equal(next.phase,'finished');
   assert.equal(finalBank(next).maximum,finalBank(next).accumulated);
 });
+
+test('attainable pay table uses reel positions, wilds and multipliers without inventing combinations', async () => {
+  const {attainablePrizes}=await import('../src/domain/slots.js');
+  const reels=createReels(config.slots);
+  const cell=(table,symbol,count)=>table.rows.find(row=>row.symbol===symbol).counts[count-1];
+  let table=attainablePrizes(reels,config.slots);
+  assert.equal(table.maximum,0); assert.equal(table.jackpot.available,false);
+  assert.ok(table.rows.every(row=>row.counts.every(c=>c.normal===null&&c.multiplied===null)));
+  reels[0].fill('lemon',0,5);
+  table=attainablePrizes(reels,config.slots);
+  assert.equal(cell(table,'lemon',1).normal,1000);
+  assert.equal(cell(table,'lemon',2).normal,null); // Five copies on one reel cannot match twice.
+  reels[1][0]='wild'; reels[1][1]='x2';
+  table=attainablePrizes(reels,config.slots);
+  assert.equal(cell(table,'lemon',2).normal,5000);
+  assert.equal(cell(table,'lemon',1).multiplied,2000);
+  assert.equal(cell(table,'lemon',2).multiplied,null); // Wild and x2 share one reel.
+  reels[2][0]='x2';
+  const before=structuredClone(reels);
+  table=attainablePrizes(reels,config.slots);
+  assert.equal(cell(table,'lemon',2).multiplied,10000);
+  assert.equal(table.maximum,10000);
+  assert.deepEqual(reels,before);
+  const custom=structuredClone(config.slots);custom.payout.table.lemon[2]=12345;
+  assert.equal(cell(attainablePrizes(reels,custom),'lemon',2).multiplied,24690);
+});
+
+test('pay table excludes losing combinations and separates the literal jackpot from wild substitutions', async () => {
+  const {attainablePrizes}=await import('../src/domain/slots.js');
+  const dominated=Array.from({length:4},()=>Array(20).fill('bell'));dominated[0][0]='lemon';
+  assert.ok(attainablePrizes(dominated,config.slots).rows.find(r=>r.symbol==='lemon').counts.every(c=>c.normal===null));
+  const reels=Array.from({length:4},()=>Array(20).fill('seven'));
+  let table=attainablePrizes(reels,config.slots);
+  assert.equal(table.jackpot.available,true);
+  assert.equal(table.rows.find(r=>r.symbol==='seven').counts[3].normal,null);
+  reels[3][0]='wild';table=attainablePrizes(reels,config.slots);
+  assert.equal(table.rows.find(r=>r.symbol==='seven').counts[3].normal,1000000);
+  assert.equal(table.jackpot.available,true);
+  reels[3].fill('wild');table=attainablePrizes(reels,config.slots);
+  assert.equal(table.jackpot.available,false);assert.equal(table.maximum,1000000);
+});
+
+test('every displayed prize is reachable and every payable amount is represented', async () => {
+  const {attainablePrizes}=await import('../src/domain/slots.js');
+  const full=Array.from({length:4},()=>Object.entries(config.slots.target).flatMap(([id,n])=>Array(n).fill(id)));
+  for(const installed of [0,5,12,20]) {
+    const reels=full.map((reel,r)=>reel.map((id,i)=>(i+r)%20<installed?id:config.slots.stone));
+    const table=attainablePrizes(reels,config.slots),analysis=analyzeSlots(reels,config.slots);
+    const displayed=table.rows.flatMap(r=>r.counts.flatMap(c=>[c.normal,c.multiplied])).filter(v=>v!=null);
+    if(table.jackpot.available)displayed.push(table.jackpot.payout);
+    assert.deepEqual([...new Set(displayed)].sort((a,b)=>a-b),analysis.distribution.filter(o=>o.payout>0).map(o=>o.payout));
+    assert.equal(table.maximum,analysis.maximum.payout);
+  }
+});

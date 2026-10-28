@@ -98,3 +98,31 @@ export function analyzeSlots(reels, config) {
     distribution: [...probabilities].map(([payout, probability]) => ({payout, probability})).sort((a,b) => a.payout-b.payout)
   };
 }
+
+// Reachability depends on which symbols exist on each reel, not their frequency.
+// Enumerate actual lines so wilds, multipliers and competing payouts obey exactly
+// the same rules as a paid spin. No random numbers or UI state are involved.
+export function attainablePrizes(reels, config) {
+  const rows = Object.keys(config.payout.table).map(symbol => ({
+    symbol,
+    counts: Array.from({length: reels.length}, (_, i) => ({count: i + 1, normal: null, multiplied: null})),
+  }));
+  const bySymbol = new Map(rows.map(row => [row.symbol, row]));
+  const jackpot = {payout: config.payout.exceptional.value, available: false};
+  let maximum = 0;
+  const symbols = reels.map(reel => [...new Set(reel)]);
+  function visit(index, line) {
+    if (index < symbols.length) {
+      for (const symbol of symbols[index]) visit(index + 1, [...line, symbol]);
+      return;
+    }
+    const result = explainLine(line, config);
+    maximum = Math.max(maximum, result.payout);
+    if (result.payout <= 0) return;
+    if (result.exceptional) { jackpot.available = true; return; }
+    const cell = bySymbol.get(result.winningSymbol)?.counts[result.winningIndices.length - 1];
+    if (cell) cell[result.multiplier === 1 ? 'normal' : 'multiplied'] = result.payout;
+  }
+  visit(0, []);
+  return {rows, jackpot, maximum};
+}
