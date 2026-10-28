@@ -58,8 +58,6 @@ async function click(page, action) {
 }
 async function drawChallenge(page) {
   await click(page, "spin");
-  await ready(page, "cards");
-  await click(page, "pick");
   await ready(page, "challenge");
 }
 async function noOverflow(page) {
@@ -93,6 +91,21 @@ test("every configured illustration has visible SVG geometry", async ({
   expect(
     geometry.filter((item) => item.width <= 0 || item.height <= 0),
   ).toEqual([]);
+});
+
+test("cards move and one is chosen automatically", async ({ page }) => {
+  await prepare(page, {
+    force: { wheel_1: "cat_1" },
+    timings: { deal: 650, draw: 850 },
+    reduced: false,
+  });
+  await click(page, "spin");
+  await expect(page.locator(".card-back")).toHaveCount(3);
+  await expect(page.locator('[data-action="pick"]')).toHaveCount(0);
+  await expect(page.locator(".card-back.is-selected")).toHaveCount(1);
+  await expect(page.locator(".card-back.is-dismissed")).toHaveCount(2);
+  await ready(page, "challenge");
+  await expect(page.locator(".challenge-card")).toBeVisible();
 });
 
 test("moving reel strips keep visible cells throughout a mobile spin", async ({
@@ -191,10 +204,8 @@ test("double clicks resolve one spin; help keeps the spinning wheel attached", a
   await expect(page.getByRole("dialog")).toBeVisible();
   expect(await disc.evaluate((node) => node.isConnected)).toBe(true);
   await page.keyboard.press("Escape");
-  await ready(page, "cards");
-  await expect(page.locator("[data-turn]")).toHaveText("01");
-  await click(page, "pick");
   await ready(page, "challenge");
+  await expect(page.locator("[data-turn]")).toHaveText("01");
   await click(page, "reject");
   await ready(page, "wheel");
   await expect(page.locator("[data-filled]")).toHaveText("0 / 80");
@@ -365,8 +376,7 @@ test("a complete deterministic game runs with sound, cards, rewards and the fina
     if (phase === "wheel") {
       await click(page, "spin");
       turns++;
-    } else if (phase === "cards") await click(page, "pick");
-    else if (phase === "challenge") {
+    } else if (phase === "challenge") {
       if (await page.locator("[data-numeric-result]").count()) {
         while (await page.locator('[data-action="more"]').isEnabled())
           await click(page, "more");
@@ -457,7 +467,6 @@ test("a complete deterministic game runs with sound, cards, rewards and the fina
   expect([...phases]).toEqual(
     expect.arrayContaining([
       "wheel",
-      "cards",
       "challenge",
       "final_ready",
       "finished",
@@ -1075,8 +1084,6 @@ test('adaptive wheel freezes its geometry while spinning and expands after a mis
   await click(page,'spin');
   await expect(page.locator('#wheel')).toBeVisible();
   expect(Number(await flame.getAttribute('data-probability'))).toBeCloseTo(.18,10);
-  await ready(page,'cards');
-  await click(page,'pick');
   await ready(page,'challenge');
   await click(page,'reject');
   await ready(page,'wheel');

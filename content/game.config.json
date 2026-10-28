@@ -7,7 +7,8 @@
     "timings": {
       "wheel": 3400,
       "category": 1100,
-      "deal": 450,
+      "deal": 900,
+      "draw": 650,
       "flip": 350,
       "reward": 1100,
       "grid": 1900,

@@ -62,7 +62,6 @@ try {
   const waitMs = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const actionControls = [
     "spin",
-    "pick",
     "reject",
     "success",
     "numeric",
@@ -243,13 +242,36 @@ try {
       play("pick");
       await wait("category");
       send({ type: "SHOW_CARDS" });
-      await wait("deal");
       announce("ui.chooseCard");
+      await wait("deal");
+      await drawCard();
     } else if (state.phase === "progression") {
       play("fire");
       await wait("fire");
       send({ type: "END_PROGRESSION" });
     }
+  }
+
+  async function drawCard() {
+    const cards = [...app.querySelectorAll(".card-back")];
+    const fan = app.querySelector(".card-fan");
+    if (!cards.length || !fan) throw new Error("NO_CARDS_TO_DRAW");
+    const index = crypto.getRandomValues(new Uint32Array(1))[0] % cards.length;
+    const chosen = cards[index];
+    const fanRect = fan.getBoundingClientRect();
+    const cardRect = chosen.getBoundingClientRect();
+    const scale = Number.parseFloat(app.querySelector(".scene").style.scale) || 1;
+    const offset = (fanRect.x + fanRect.width / 2 - cardRect.x - cardRect.width / 2) / scale;
+    chosen.style.setProperty("--draw-x", `${offset}px`);
+    cards.forEach((card, i) => card.classList.add(i === index ? "is-selected" : "is-dismissed"));
+    play("pick");
+    await wait("draw");
+    local.numeric = 0;
+    state = transition(state, { type: "PICK_CARD" }, context);
+    state = transition(state, { type: "ACCEPT" }, context);
+    render();
+    announce("ui.challengeActive");
+    await wait("flip");
   }
 
   async function chaseLights(draw, duration) {
@@ -514,14 +536,6 @@ try {
         case "spin":
           if (state.phase === "wheel") await spinWheel();
           break;
-        case "pick":
-          local.numeric = 0;
-          state = transition(state, { type: "PICK_CARD" }, context);
-          state = transition(state, { type: "ACCEPT" }, context);
-          render();
-          play("pick");
-          await wait("flip");
-          break;
         case "reject": {
           const numeric = state.card.resolution === "numeric";
           const result = numeric
@@ -594,9 +608,7 @@ try {
           const focus =
             state.phase === "wheel"
               ? "spin"
-              : state.phase === "cards"
-                ? "pick"
-                : state.phase === "challenge"
+              : state.phase === "challenge"
                   ? state.card.resolution === "numeric"
                     ? "more"
                     : "success"
