@@ -70,7 +70,8 @@
           "suffix_key": "ui.amountThousand"
         }
       ]
-    }
+    },
+    "wheelProbabilityDigits": 1
   },
   "symbols": {
     "stone": {
@@ -237,12 +238,45 @@
     "forceAt": 4,
     "adaptive": {
       "enabled": true,
-      "minimumFill": 0.7,
+      "minimumFill": 0,
       "maximumFill": 0.9,
-      "pityFrom": 0.7,
-      "perMiss": 0.03,
-      "probabilityCeiling": 0.95,
-      "curve": [[0, 0.14], [0.69, 0.14], [0.7, 0.35], [0.8, 0.65], [0.9, 0.9], [1, 0.95]]
+      "pityFrom": 0.6,
+      "perMiss": 0.0025,
+      "probabilityCeiling": 0.75,
+      "curve": [
+        [
+          0,
+          0.005
+        ],
+        [
+          0.4,
+          0.005
+        ],
+        [
+          0.5,
+          0.02
+        ],
+        [
+          0.6,
+          0.06
+        ],
+        [
+          0.7,
+          0.18
+        ],
+        [
+          0.8,
+          0.4
+        ],
+        [
+          0.9,
+          0.65
+        ],
+        [
+          1,
+          0.75
+        ]
+      ]
     }
   },
   "final": {

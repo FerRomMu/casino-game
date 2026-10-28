@@ -17,14 +17,14 @@ function stateWithFill(n) {
 }
 const probability = state => wheelSectors(wheelCategories(state, config)).find(c=>c.behavior==='progression').probability;
 
-test('adaptive weights match the tested curve, gate and pity while preserving other category ratios', () => {
-  for (const [filled,p] of [[0,.14],[55,.14],[56,.35],[64,.65],[72,.9]]) assert.ok(Math.abs(probability(stateWithFill(filled))-p)<1e-10);
+test('adaptive weights match the smooth curve and pity while preserving other category ratios', () => {
+  for (const [filled,p] of [[0,.005],[40,.02],[48,.06],[56,.18],[64,.4],[72,.65]]) assert.ok(Math.abs(probability(stateWithFill(filled))-p)<1e-10);
   const state=stateWithFill(55); state.appearances=2;
-  assert.equal(probability(state),0);
+  assert.ok(probability(state)>0);
   state.reels=stateWithFill(56).reels; state.progressionMisses=3;
-  assert.ok(Math.abs(probability(state)-.44)<1e-10);
+  assert.ok(Math.abs(probability(state)-.1875)<1e-10);
   state.progressionMisses=100;
-  assert.ok(Math.abs(probability(state)-.95)<1e-10);
+  assert.ok(Math.abs(probability(state)-.43)<1e-10);
   const modified=structuredClone(config);
   modified.wheels.wheel_1.categories[0].weight=3;
   modified.wheels.wheel_1.categories[1].weight=0;
@@ -35,7 +35,7 @@ test('adaptive weights match the tested curve, gate and pity while preserving ot
   assert.deepEqual(wheelCategories(state,config),config.wheels[state.wheel].categories);
 });
 
-test('two early flames cannot cause a premature third and misses use pre-spin geometry', () => {
+test('early third flames remain possible and misses use pre-spin geometry', () => {
   const context={config,decks,rng:()=>.99999};
   let state=stateWithFill(0);
   for (let i=0;i<2;i++) {
@@ -43,19 +43,32 @@ test('two early flames cannot cause a premature third and misses use pre-spin ge
     state=transition(state,{type:'END_PROGRESSION'},context);
   }
   state=transition(state,{type:'SPIN_WHEEL'},context);
-  assert.equal(state.appearances,2);
-  assert.equal(state.phase,'category');
+  assert.equal(state.appearances,3);
+  assert.equal(state.phase,'progression');
+  state=transition(state,{type:'END_PROGRESSION'},context);
+  assert.equal(state.phase,'decision');
   assert.equal(state.wheel,config.progression.initialWheel);
   state=stateWithFill(56);
   const before=structuredClone(state);
   state=transition(state,{type:'SPIN_WHEEL'},{...context,rng:()=>0});
   assert.equal(state.progressionMisses,1);
-  assert.ok(Math.abs(wheelSectors(state.spinCategories).at(-1).probability-.35)<1e-10);
-  assert.ok(Math.abs(probability(state)-.38)<1e-10);
+  assert.ok(Math.abs(wheelSectors(state.spinCategories).at(-1).probability-.18)<1e-10);
+  assert.ok(Math.abs(probability(state)-.1825)<1e-10);
   assert.equal(before.progressionMisses,0);
   state.phase='wheel';
   state=transition(state,{type:'SPIN_WHEEL'},context);
   assert.equal(state.progressionMisses,0);
+});
+
+test('smooth progression stays positive and has no gate jump or change after a flame', () => {
+  let previous=0;
+  for(let filled=0;filled<72;filled++){
+    const state=stateWithFill(filled);
+    const before=probability(state);state.appearances=2;
+    assert.equal(probability(state),before);
+    assert.ok(before>0 && before>=previous && before-previous<=.032);
+    previous=before;
+  }
 });
 
 test('large rewards stop at the cap and preserve every overflow symbol until the next wheel', () => {

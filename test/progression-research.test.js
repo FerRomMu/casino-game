@@ -10,13 +10,14 @@ const load = async path => JSON.parse(await readFile(new URL(path, import.meta.u
 const config = await load('../content/game.config.json');
 const decks = {wheel_1:await load('../content/cards_wheel_1.json'), wheel_2:await load('../content/cards_wheel_2.json')};
 const experiment = await load('../research/progression/models.json');
+const smooth = await load('../research/progression/smooth-refinement.json');
 
 test('legacy and recommended research policies agree with production transitions, excluding unpaid previews', () => {
   const profile = experiment.profiles[0];
-  for (const model of experiment.models.filter(m => ['current','bounded_fast'].includes(m.id)))
+  for (const model of [...experiment.models.filter(m => ['current','bounded_fast'].includes(m.id)), smooth.models.find(m => m.id === 'balanced_wait')])
   for (const choice of [false, true]) for (let seed = 1; seed <= 32; seed++) {
     const productionConfig = structuredClone(config);
-    productionConfig.progression.adaptive.enabled = model.id === 'bounded_fast';
+    productionConfig.progression.adaptive = {enabled:model.id !== 'current', minimumFill:model.gate ?? 0, maximumFill:model.cap ?? .9, pityFrom:model.pityFrom ?? .7, perMiss:model.perMiss ?? 0, probabilityCeiling:model.ceiling ?? .95, curve:model.curve ?? [[0,.14],[1,.14]]};
     const rng = seededRandom(seed), context = {config:productionConfig, decks, rng}, events = [];
     let state = createGame(config, rng), entry = null, firstTurns = 0, fullInWheel1 = false;
     const send = action => {state = transition(state, action, context);};

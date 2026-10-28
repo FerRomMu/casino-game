@@ -34,7 +34,7 @@ La partida se ejecuta en memoria. Cada carga obtiene una semilla nueva del naveg
 - Animaciones de cartas, selección de fichas, vuelos reales hacia el inventario y los rodillos, reemplazos del tablero, fuego y premios. Las fichas recogidas se muestran después de extraerse; los rodillos frenan de a uno.
 - Protección frente a clicks repetidos durante las secuencias. La ayuda se puede abrir durante las animaciones sin reemplazar ni interrumpir la escena en curso.
 - Una única tirada de muestra tras cada recompensa: si aumenta el máximo alcanzable, lo muestra y anuncia el nuevo récord; de lo contrario, muestra una tirada aleatoria. No consume tiradas ni acredita premios. Los umbrales y tamaños del número se configuran en `ui.prizeTiers`.
-- Primera ruleta adaptativa: permite acumular dos llamas antes del 70% de llenado. Desde ese mínimo habilita la tercera para elegir pasar o continuar; la cuarta obliga a pasar. Al alcanzar el 90% cambia de etapa automáticamente, conservando las fichas excedentes para incorporarlas en la segunda ruleta.
+- Primera ruleta adaptativa: la categoría de avance permanece disponible y crece gradualmente con el llenado. La tercera llama permite elegir pasar o continuar; la cuarta obliga a pasar. Al alcanzar el 90% cambia de etapa automáticamente, conservando las fichas excedentes para incorporarlas en la segunda ruleta.
 - Primera aparición de la categoría final: acceso directo al tragamonedas, con una tirada por click, frenado pausado de izquierda a derecha y resaltado de los símbolos que realmente pagan (incluidos Wild y un único multiplicador). El pozo acumulado se muestra junto al máximo total: acumulado + máximo por tirada × tiradas restantes. Ambos se actualizan al terminar de frenar, sin revelar el resultado durante el giro.
 - La segunda ruleta también cierra automáticamente cuando están completas todas las posiciones y se ganó el máximo de tiradas. Después de incorporar la última recompensa se pasa directamente al final, sin otra tirada de muestra ni otro giro de ruleta. También se comprueba al entrar desde la primera ruleta. Se configura con `final.autoFinishWhenComplete`, usando `slots` y `final.maxSpins` como límites.
 - Juego ajustado a `100dvh`, sin scroll de página, con título y sonido dentro del gabinete, fondo texturado e inventario siempre visible. Diseño adaptable y preferencia `prefers-reduced-motion`.
@@ -59,11 +59,11 @@ La función `wheelSectors` produce tanto los límites utilizados por el dibujo S
 
 ### Progresión adaptativa de la primera ruleta
 
-`progression.adaptive` configura el modelo recomendado por las simulaciones:
+`progression.adaptive` configura la curva suave elegida tras las simulaciones; ver [comparación y Q25 por perfil](research/progression/SMOOTH.md):
 
-- `minimumFill: 0.7` y `maximumFill: 0.9`: con 80 posiciones, la tercera llama se habilita desde 56 y el pase es obligatorio al incorporar 72. Si ya hay dos llamas antes del mínimo, la categoría se oculta temporalmente y el panel explica cuándo se habilita.
-- `curve`: puntos `[llenado, probabilidad]`, interpolados linealmente. La configuración ensayada usa 14% hasta 69% de llenado, 35% al 70%, 65% al 80% y 90% al 90%.
-- `pityFrom: 0.7`, `perMiss: 0.03`, `probabilityCeiling: 0.95`: desde el mínimo, cada giro sin llama suma tres puntos porcentuales, hasta 95%. Al salir una llama se reinicia; los giros anteriores al mínimo no acumulan esta bonificación.
+- `minimumFill: 0` elimina el bloqueo: la categoría permanece disponible incluso después de dos llamas. `maximumFill: 0.9` mantiene el pase obligatorio al incorporar 72 de las 80 posiciones.
+- `curve`: puntos `[llenado, probabilidad]`, interpolados linealmente. La curva suave usa 0,5% hasta 40% de llenado, 2% al 50%, 6% al 60%, 18% al 70%, 40% al 80% y 65% al 90%, sin saltos de habilitación. Los porcentajes de la UI admiten un decimal (`ui.wheelProbabilityDigits`).
+- `pityFrom: 0.6`, `perMiss: 0.0025`, `probabilityCeiling: 0.75`: desde 60% de llenado, cada giro sin llama suma 0,25 puntos porcentuales, hasta 75%. Al salir una llama se reinicia; los giros anteriores al 60% no acumulan esta bonificación.
 - La ruleta y su leyenda usan `wheelCategories(state, config)`. Durante el giro se conserva la geometría del sorteo: la siguiente probabilidad sólo aparece al volver a la ruleta.
 - Una recompensa grande se divide por unidades: se incorporan fichas hasta el límite, se muestra el cambio de etapa y se incorporan todas las restantes en la segunda ruleta. No se descartan unidades ni se reemplazan símbolos instalados. El excedente puede dejar la segunda ruleta por encima del 90%, como en la simulación; nunca completa la primera.
 

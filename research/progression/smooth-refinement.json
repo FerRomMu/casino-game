@@ -1,0 +1,215 @@
+{
+  "seed": 20261029,
+  "gamesPerScenario": 500,
+  "maxTurns": 1000,
+  "autoFinishWhenComplete": true,
+  "target": {
+    "minimum": 0.6,
+    "maximum": 0.9
+  },
+  "choices": [
+    false,
+    true
+  ],
+  "profiles": [
+    {
+      "id": "typical",
+      "accept": 0.85,
+      "success": 0.7,
+      "numeric": "uniform"
+    },
+    {
+      "id": "low",
+      "accept": 0.5,
+      "success": 0.4,
+      "numeric": "binomial"
+    },
+    {
+      "id": "high",
+      "accept": 1,
+      "success": 0.95,
+      "numeric": "binomial"
+    },
+    {
+      "id": "scarce",
+      "accept": 0.2,
+      "success": 0.25,
+      "numeric": "binomial"
+    },
+    {
+      "id": "reject_half",
+      "accept": 0.5,
+      "success": 0.7,
+      "numeric": "uniform"
+    },
+    {
+      "id": "reject_most",
+      "accept": 0.2,
+      "success": 0.7,
+      "numeric": "uniform"
+    }
+  ],
+  "models": [
+    {
+      "id": "bounded_fast",
+      "kind": "curve",
+      "gate": 0.7,
+      "cap": 0.9,
+      "pityFrom": 0.7,
+      "perMiss": 0.03,
+      "ceiling": 0.95,
+      "curve": [
+        [
+          0,
+          0.14
+        ],
+        [
+          0.69,
+          0.14
+        ],
+        [
+          0.7,
+          0.35
+        ],
+        [
+          0.8,
+          0.65
+        ],
+        [
+          0.9,
+          0.9
+        ],
+        [
+          1,
+          0.95
+        ]
+      ]
+    },
+    {
+      "id": "balanced_wait",
+      "kind": "curve",
+      "cap": 0.9,
+      "pityFrom": 0.6,
+      "perMiss": 0.0025,
+      "ceiling": 0.75,
+      "curve": [
+        [
+          0,
+          0.005
+        ],
+        [
+          0.4,
+          0.005
+        ],
+        [
+          0.5,
+          0.02
+        ],
+        [
+          0.6,
+          0.06
+        ],
+        [
+          0.7,
+          0.18
+        ],
+        [
+          0.8,
+          0.4
+        ],
+        [
+          0.9,
+          0.65
+        ],
+        [
+          1,
+          0.75
+        ]
+      ]
+    },
+    {
+      "id": "balanced_fill",
+      "kind": "curve",
+      "cap": 0.9,
+      "pityFrom": 0.6,
+      "perMiss": 0,
+      "ceiling": 0.75,
+      "curve": [
+        [
+          0,
+          0.005
+        ],
+        [
+          0.4,
+          0.005
+        ],
+        [
+          0.5,
+          0.02
+        ],
+        [
+          0.6,
+          0.06
+        ],
+        [
+          0.7,
+          0.18
+        ],
+        [
+          0.8,
+          0.4
+        ],
+        [
+          0.9,
+          0.65
+        ],
+        [
+          1,
+          0.75
+        ]
+      ]
+    },
+    {
+      "id": "earlier_fill",
+      "kind": "curve",
+      "cap": 0.9,
+      "pityFrom": 0.6,
+      "perMiss": 0,
+      "ceiling": 0.75,
+      "curve": [
+        [
+          0,
+          0.005
+        ],
+        [
+          0.4,
+          0.005
+        ],
+        [
+          0.5,
+          0.04
+        ],
+        [
+          0.6,
+          0.1
+        ],
+        [
+          0.7,
+          0.22
+        ],
+        [
+          0.8,
+          0.4
+        ],
+        [
+          0.9,
+          0.6
+        ],
+        [
+          1,
+          0.75
+        ]
+      ]
+    }
+  ]
+}

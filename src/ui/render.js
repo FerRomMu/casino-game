@@ -20,6 +20,7 @@ export function createRenderer(config, t) {
     new Intl.NumberFormat(config.ui.locale, {
       maximumFractionDigits: 0,
     }).format(n);
+  const percentage = (p) => new Intl.NumberFormat(config.ui.locale, {maximumFractionDigits: config.ui.wheelProbabilityDigits ?? 1}).format(p * 100);
   const money = (n) =>
     new Intl.NumberFormat(config.ui.locale, {
       style: "currency",
@@ -60,7 +61,7 @@ export function createRenderer(config, t) {
           s.probability >= 1 - 1e-10
             ? '<circle cx="300" cy="300" r="245"'
             : `<path d="M300 300L${start.join(" ")}A245 245 0 ${b - a > 180 ? 1 : 0} 1 ${end.join(" ")}Z"`;
-        return `<g data-sector="${e(s.id)}" data-probability="${s.probability}" data-start="${s.start}" data-end="${s.end}"><defs><radialGradient id="sector-${i}" gradientUnits="userSpaceOnUse" cx="300" cy="300" r="245"><stop stop-color="#26083c"/><stop offset=".5" stop-color="${e(s.color)}"/><stop offset="1" stop-color="${e(s.color)}"/></radialGradient></defs>${shape} fill="url(#sector-${i})" stroke="#ffdc7b" stroke-width="2"/>${shape} fill="url(#wheel-sheen)"/><title>${text(s.name_key)} · ${number(s.probability * 100)}%</title>${s.probability >= 0.065 ? `<use href="${sprite}#${e(s.art)}" x="${mark[0] - 18}" y="${mark[1] - 18}" width="36" height="36" transform="rotate(${rotation},${mark.join(",")})"/>` : ""}${s.probability >= 0.045 ? `<text class="sector-name" x="${label[0]}" y="${label[1]}" transform="rotate(${rotation},${label.join(",")})" text-anchor="middle" dominant-baseline="middle" style="font-size:${t(s.name_key).length > 16 ? 15 : 18}px">${text(s.name_key)}</text><text class="sector-rate" x="${rate[0]}" y="${rate[1]}" transform="rotate(${rotation},${rate.join(",")})" text-anchor="middle">${number(s.probability * 100)}%</text>` : ""}</g>`;
+        return `<g data-sector="${e(s.id)}" data-probability="${s.probability}" data-start="${s.start}" data-end="${s.end}"><defs><radialGradient id="sector-${i}" gradientUnits="userSpaceOnUse" cx="300" cy="300" r="245"><stop stop-color="#26083c"/><stop offset=".5" stop-color="${e(s.color)}"/><stop offset="1" stop-color="${e(s.color)}"/></radialGradient></defs>${shape} fill="url(#sector-${i})" stroke="#ffdc7b" stroke-width="2"/>${shape} fill="url(#wheel-sheen)"/><title>${text(s.name_key)} · ${percentage(s.probability)}%</title>${s.probability >= 0.065 ? `<use href="${sprite}#${e(s.art)}" x="${mark[0] - 18}" y="${mark[1] - 18}" width="36" height="36" transform="rotate(${rotation},${mark.join(",")})"/>` : ""}${s.probability >= 0.045 ? `<text class="sector-name" x="${label[0]}" y="${label[1]}" transform="rotate(${rotation},${label.join(",")})" text-anchor="middle" dominant-baseline="middle" style="font-size:${t(s.name_key).length > 16 ? 15 : 18}px">${text(s.name_key)}</text><text class="sector-rate" x="${rate[0]}" y="${rate[1]}" transform="rotate(${rotation},${rate.join(",")})" text-anchor="middle">${percentage(s.probability)}%</text>` : ""}</g>`;
       })
       .join("");
     const lights = Array.from({ length: config.ui.wheelBulbs }, (_, i) => {
@@ -76,7 +77,7 @@ export function createRenderer(config, t) {
     )
       .map(
         (c) =>
-          `<div class="category-pill" style="--category:${e(c.color)}">${art(c.art)}<span>${text(c.name_key)}</span><b>${number(c.probability * 100)}%</b></div>`,
+          `<div class="category-pill" style="--category:${e(c.color)}">${art(c.art)}<span>${text(c.name_key)}</span><b>${percentage(c.probability)}%</b></div>`,
       )
       .join("")}</div></details></section>`;
   }

@@ -457,7 +457,6 @@ test("a complete deterministic game runs with sound, cards, rewards and the fina
       "cards",
       "offer",
       "challenge",
-      "decision",
       "final_ready",
       "finished",
     ]),
@@ -1076,22 +1075,22 @@ test('adaptive wheel freezes its geometry while spinning and expands after a mis
   await adaptiveFixture(page, `state.reels=full.map((reel,r)=>reel.map((symbol,p)=>r*config.slots.positions+p<56?symbol:config.slots.stone));state.appearances=2;state.progression=2;`);
   await prepare(page,{mutate:adaptiveCategories,reduced:false,timings:{wheel:900}});
   const flame=page.locator('[data-sector="cat_7_progression"]');
-  expect(Number(await flame.getAttribute('data-probability'))).toBeCloseTo(.35,10);
+  expect(Number(await flame.getAttribute('data-probability'))).toBeCloseTo(.18,10);
   await click(page,'spin');
   await expect(page.locator('#wheel')).toBeVisible();
-  expect(Number(await flame.getAttribute('data-probability'))).toBeCloseTo(.35,10);
+  expect(Number(await flame.getAttribute('data-probability'))).toBeCloseTo(.18,10);
   await ready(page,'cards');
   await click(page,'pick');
   await ready(page,'offer');
   await click(page,'reject');
   await ready(page,'wheel');
-  expect(Number(await flame.getAttribute('data-probability'))).toBeCloseTo(.38,10);
+  expect(Number(await flame.getAttribute('data-probability'))).toBeCloseTo(.1825,10);
   const start=Number(await flame.getAttribute('data-start'));
-  expect(1-start).toBeCloseTo(.38,10);
+  expect(1-start).toBeCloseTo(.1825,10);
   await noOverflow(page);
 });
 
-test('third flame stays visibly locked until the seventy percent threshold is earned', async ({page}) => {
+test('third flame remains visible and grows smoothly through seventy percent', async ({page}) => {
   await page.setViewportSize({width:390,height:844});
   await adaptiveFixture(page, `
     const filled=55;
@@ -1100,12 +1099,16 @@ test('third flame stays visibly locked until the seventy percent threshold is ea
     state.grid={cells:[{kind:'symbol',symbol:full.flat()[filled],units:1},...Array(config.grid.rows*config.grid.columns-1).fill(null)],pool:[],reserves:[]};
   `);
   await prepare(page,{mutate:adaptiveCategories});
-  await expect(page.locator('[data-sector="cat_7_progression"]')).toHaveCount(0);
-  await expect(page.locator('.progress-panel')).toContainText(strings['ui.progressLocked']);
+  const flame=page.locator('[data-sector="cat_7_progression"]');
+  await expect(flame).toHaveCount(1);
+  const before=Number(await flame.getAttribute('data-probability'));
+  expect(before).toBeGreaterThan(0);
+  await expect(page.locator('.progress-panel')).not.toContainText(strings['ui.progressLocked']);
   await offer(page);await click(page,'accept');await ready(page,'challenge');await click(page,'success');
   await page.waitForSelector('#stage[data-phase="wheel"][data-busy="false"]');
   await expect(page.locator('[data-filled]')).toHaveText('56 / 80');
-  expect(Number(await page.locator('[data-sector="cat_7_progression"]').getAttribute('data-probability'))).toBeCloseTo(.35,10);
+  expect(Number(await flame.getAttribute('data-probability'))-before).toBeLessThan(.02);
+  expect(Number(await page.locator('[data-sector="cat_7_progression"]').getAttribute('data-probability'))).toBeCloseTo(.1825,10);
   await expect(page.locator('.progress-panel')).not.toContainText(strings['ui.progressLocked']);
   await noOverflow(page);
 });

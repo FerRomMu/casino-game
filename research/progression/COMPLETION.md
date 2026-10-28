@@ -15,7 +15,7 @@ El cierre automático usa la misma condición del dominio que la demo: segunda r
 | Híbrido recomendado | Continúa | No | 14 / 23 / 76 | 31 / 40 / 95 |
 | Híbrido recomendado | Continúa | Sí | 4 / 5 / 7 | 21 / 22 / 25 |
 
-La demo ya incorpora el híbrido recomendado y el cierre automático de la segunda ruleta. La política original queda como referencia histórica; sus giros de primera ruleta no tienen límite por llenado.
+Comparación histórica del híbrido con bloqueo al 70%. La demo usa ahora una curva suave sin ese bloqueo; ver SMOOTH.md. El cierre automático de la segunda ruleta continúa activo.
 
 Los máximos son observados, no límites garantizados. Mientras falten fichas o tiradas, rechazos y fallos pueden prolongar la segunda etapa. Lo que se elimina es seguir girando cuando ya no queda nada por ganar.
 
