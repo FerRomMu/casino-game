@@ -70,13 +70,21 @@ async function noOverflow(page) {
   ).toBe(true);
 }
 
-test("symbol progress starts empty without per-symbol rows", async ({ page }) => {
+test("symbol progress is vertical on desktop and horizontal on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
   await prepare(page);
   const progress = page.getByRole("progressbar", { name: strings["ui.inventory"] });
   await expect(progress).toBeVisible();
   await expect(progress).toHaveAttribute("aria-valuenow", "0");
   await expect(progress).toHaveAttribute("aria-valuemax", "80");
   await expect(page.locator(".inventory-table")).toHaveCount(0);
+  const desktop = await progress.boundingBox();
+  expect(desktop.height).toBeGreaterThan(desktop.width);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => {
+    const mobile = await progress.boundingBox();
+    return mobile.width > mobile.height;
+  }).toBe(true);
 });
 
 test("cards move and one is chosen automatically", async ({ page }) => {

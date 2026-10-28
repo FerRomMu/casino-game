@@ -734,6 +734,7 @@ summary {
   border-top: 1px solid #b883dc20;
   margin-top: 15px;
   padding-top: 13px;
+  text-align: center;
 }
 .composition h2 {
   margin: 0 0 12px;
@@ -744,24 +745,26 @@ summary {
 }
 .symbol-progress {
   position: relative;
-  height: 58px;
+  width: 72px;
+  height: clamp(104px, 18vh, 170px);
+  margin-inline: auto;
   overflow: hidden;
   border: 2px solid #e5b66a;
-  border-radius: 15px;
+  border-radius: 18px;
   background:
-    linear-gradient(100deg, #6654a644, #b64aa344, #e5688844, #f5bb6244, #54c8cf44),
+    linear-gradient(0deg, #6654a644, #b64aa344, #e5688844, #f5bb6244, #54c8cf44),
     #170c2b;
-  background-size: 220% 100%;
+  background-size: 100% 220%;
   animation: symbol-progress-track 8s ease-in-out infinite alternate;
   box-shadow: inset 0 4px 12px #080410, 0 0 18px #a85ff42b;
 }
 .symbol-progress-fill {
   position: absolute;
-  inset: 3px auto 3px 3px;
-  width: var(--fill);
-  border-radius: 10px;
+  inset: auto 3px 3px 3px;
+  height: var(--fill);
+  border-radius: 13px;
   overflow: hidden;
-  background: linear-gradient(90deg, #6663f8, #b04df5, #f35dbe, #ffad4d, #ffe17a, #65dfd7);
+  background: linear-gradient(0deg, #6663f8, #b04df5, #f35dbe, #ffad4d, #ffe17a, #65dfd7);
   box-shadow: 0 0 18px #f69bd588, inset 0 2px 2px #ffffff77;
 }
 .symbol-progress.is-growing .symbol-progress-fill {
@@ -771,8 +774,8 @@ summary {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(110deg, transparent 20%, #fff8 42%, transparent 65%);
-  background-size: 220% 100%;
+  background: linear-gradient(0deg, transparent 20%, #fff8 42%, transparent 65%);
+  background-size: 100% 220%;
   animation: symbol-progress-shine 2.2s linear infinite;
 }
 .symbol-progress-fill::after {
@@ -780,8 +783,8 @@ summary {
   position: absolute;
   top: 0;
   right: 0;
-  bottom: 0;
-  width: 14px;
+  left: 0;
+  height: 14px;
   background: #fff9;
   filter: blur(9px);
   animation: symbol-progress-glow 1.5s ease-in-out infinite alternate;
@@ -2712,13 +2715,23 @@ footer > .text-button {
   }
 }
 @keyframes symbol-progress-grow {
+  from { height: var(--from); }
+  to { height: var(--fill); }
+}
+@keyframes symbol-progress-grow-horizontal {
   from { width: var(--from); }
   to { width: var(--fill); }
 }
 @keyframes symbol-progress-track {
+  to { background-position: 0 100%; }
+}
+@keyframes symbol-progress-track-horizontal {
   to { background-position: 100% 0; }
 }
 @keyframes symbol-progress-shine {
+  to { background-position: 0 -220%; }
+}
+@keyframes symbol-progress-shine-horizontal {
   to { background-position: -220% 0; }
 }
 @keyframes symbol-progress-glow {
@@ -3318,8 +3331,41 @@ body {
   .jackpot-panel > strong {
     font-size: 30px;
   }
+  .composition {
+    text-align: left;
+  }
   .symbol-progress {
+    width: 100%;
     height: 48px;
+    border-radius: 15px;
+    background:
+      linear-gradient(100deg, #6654a644, #b64aa344, #e5688844, #f5bb6244, #54c8cf44),
+      #170c2b;
+    background-size: 220% 100%;
+    animation-name: symbol-progress-track-horizontal;
+  }
+  .symbol-progress-fill {
+    inset: 3px auto 3px 3px;
+    width: var(--fill);
+    height: auto;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #6663f8, #b04df5, #f35dbe, #ffad4d, #ffe17a, #65dfd7);
+  }
+  .symbol-progress.is-growing .symbol-progress-fill {
+    animation-name: symbol-progress-grow-horizontal;
+  }
+  .symbol-progress-fill::before {
+    background: linear-gradient(110deg, transparent 20%, #fff8 42%, transparent 65%);
+    background-size: 220% 100%;
+    animation-name: symbol-progress-shine-horizontal;
+  }
+  .symbol-progress-fill::after {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: 14px;
+    height: auto;
   }
   .cabinet-heading {
     padding: 4px 4px 8px;
