@@ -1,6 +1,7 @@
 import { selectCategory, indexOfRandom } from './random.js';
 import { createGrid, executeGrid } from './grid.js';
 import { createReels, insertTokens, analyzeSlots, spinSlots } from './slots.js';
+import { progressionStatus, wheelCategories, splitAtProgressionLimit } from './progression.js';
 
 // Completion closes only the advanced wheel, and requires earned spins: the
 // minimum final-spin guarantee must not count as progression already collected.
@@ -16,6 +17,7 @@ export function createGame(config, rng, participantId = 'participant_1') {
   return {
     participantId, phase: 'wheel', wheel: config.progression.initialWheel,
     progression: 0, appearances: 0, continued: false, points: 0, spins: 0,
+    progressionMisses: 0, spinCategories: null, pendingTokens: [],
     total: 0, turn: 0, usedCards: [], grid: createGrid(config.grid, rng),
     reels: createReels(config.slots), category: null, card: null, extraction: null,
     preview: null, previewOutcome: null, newMaximum: false, maximumSeen: 0, lastSpin: null, history: []
@@ -36,21 +38,29 @@ export function transition(state, action, context) {
   };
   const returnToWheel = () => {
     s.phase = 'wheel'; s.card = null; s.extraction = null;
-    if (shouldFinishOnCompletion(s, config)) enterFinal();
+    if (progressionStatus(s, config).atLimit) s.phase = 'wheel_transition';
+    else if (shouldFinishOnCompletion(s, config)) enterFinal();
   };
   switch (action.type) {
     case 'SPIN_WHEEL': {
       requirePhase('wheel');
+      if (progressionStatus(s, config).atLimit) { s.category = null; s.phase = 'wheel_transition'; break; }
       if (shouldFinishOnCompletion(s, config)) { s.category = null; enterFinal(); break; }
-      s.category = selectCategory(config.wheels[s.wheel].categories, rng);
+      const status = progressionStatus(s, config);
+      s.spinCategories = wheelCategories(s, config);
+      s.category = selectCategory(s.spinCategories, rng);
       s.turn++;
       if (s.category.behavior === 'progression') {
+        s.progressionMisses = 0;
         s.appearances++;
         s.progression = Math.min(config.progression.choiceAt, s.appearances);
         s.phase = 'progression';
       } else if (s.category.behavior === 'finale') {
         enterFinal();
-      } else s.phase = 'category';
+      } else {
+        if (status.rules) s.progressionMisses = status.fraction >= status.rules.pityFrom ? s.progressionMisses + 1 : 0;
+        s.phase = 'category';
+      }
       break;
     }
     case 'SHOW_CARDS': requirePhase('category'); s.phase = 'cards'; break;
@@ -91,7 +101,10 @@ export function transition(state, action, context) {
       break;
     case 'INSERT_TOKENS': {
       requirePhase('grid');
-      const insertion = insertTokens(s.reels, s.extraction.tokens, config.slots, rng);
+      const split = splitAtProgressionLimit(s, s.extraction.tokens, config);
+      s.pendingTokens = split.pending;
+      s.extraction.tokens = split.tokens;
+      const insertion = insertTokens(s.reels, split.tokens, config.slots, rng);
       s.reels = insertion.reels;
       s.insertion = insertion.inserted;
       s.phase = 'machine';
@@ -99,6 +112,7 @@ export function transition(state, action, context) {
     }
     case 'SHOW_PREVIEW':
       requirePhase('machine');
+      if (progressionStatus(s, config).atLimit) { s.phase = 'wheel_transition'; break; }
       if (shouldFinishOnCompletion(s, config)) { enterFinal(); break; }
       s.preview = analyzeSlots(s.reels, config.slots);
       s.newMaximum = s.preview.maximum.payout > s.maximumSeen;
@@ -107,6 +121,15 @@ export function transition(state, action, context) {
       s.phase = 'preview';
       break;
     case 'END_PREVIEW': requirePhase('preview'); returnToWheel(); break;
+    case 'ADVANCE_WHEEL':
+      requirePhase('wheel_transition');
+      s.wheel = config.progression.nextWheel;
+      s.progressionMisses = 0;
+      s.card = null;
+      s.extraction = {...s.extraction, tokens:s.pendingTokens, draws:[]};
+      s.pendingTokens = [];
+      s.phase = 'grid';
+      break;
     case 'END_PROGRESSION':
       requirePhase('progression');
       if (s.appearances >= config.progression.forceAt) {

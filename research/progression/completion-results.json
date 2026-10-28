@@ -8,7 +8,7 @@
     "numeric": "binomial"
   },
   "maxTurns": 1000,
-  "note": "Paired identical seeds. Current is the deployed first-wheel policy; bounded_fast remains experimental. No UI previews. Maximum is observed, not a hard turn limit.",
+  "note": "Paired identical seeds. Current identifies the original fixed policy; bounded_fast is now the deployed adaptive policy. No UI previews. Maximum is observed, not a hard turn limit.",
   "scenarios": [
     {
       "model": "current",

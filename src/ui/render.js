@@ -1,6 +1,7 @@
 import { attainablePrizes } from "../domain/slots.js";
 import { finalBank } from "../domain/game.js";
 import { wheelSectors } from "../domain/random.js";
+import { wheelCategories, progressionStatus } from "../domain/progression.js";
 
 export const escapeHtml = (value) =>
   String(value ?? "").replace(
@@ -38,7 +39,7 @@ export function createRenderer(config, t) {
   const sparks = () =>
     `<div class="spark-particles" aria-hidden="true">${Array.from({ length: config.ui.particleCount }, (_, i) => `<i style="--i:${i};--x:${(i * 37 + 11) % 100}%;--delay:${(i % 7) * -0.8}s"></i>`).join("")}</div>`;
   function wheelMarkup(state, local) {
-    const sectors = wheelSectors(config.wheels[state.wheel].categories);
+    const sectors = wheelSectors(local.wheelSpinning && state.spinCategories ? state.spinCategories : wheelCategories(state, config));
     const polar = (a, r) => [
       300 + Math.sin((a * Math.PI) / 180) * r,
       300 - Math.cos((a * Math.PI) / 180) * r,
@@ -71,7 +72,7 @@ export function createRenderer(config, t) {
 
   function wheelScene(s, l) {
     return `<section class="scene wheel-scene ${l.enter ? "scene-enter" : ""}"><div class="scene-heading"><span class="eyebrow">${text("app.eyebrow")}</span><h1>${text("app.subtitle")}</h1><p>${text("ui.spinHint")}</p></div><div class="wheel-theater"><div class="floating-symbol floating-a">${art("cherry")}</div><div class="floating-symbol floating-b">${art("diamond")}</div><div class="floating-coin coin-a">${art("coin")}</div><div class="floating-coin coin-b">${art("coin")}</div>${wheelMarkup(s, l)}</div><div class="wheel-actions">${button("spin", l.wheelSpinning ? "ui.spinning" : "ui.spin", "primary spin-button", l.busy ? "disabled" : "")}<span class="click-hint"><i></i>${text(l.wheelSpinning ? "ui.locked" : "ui.ready")}</span></div><details class="category-details" ${l.probabilitiesOpen ? "open" : ""}><summary>${text("ui.probabilities")}<span>⌄</span></summary><div class="category-list">${wheelSectors(
-      config.wheels[s.wheel].categories,
+      l.wheelSpinning && s.spinCategories ? s.spinCategories : wheelCategories(s, config),
     )
       .map(
         (c) =>
@@ -247,7 +248,7 @@ export function createRenderer(config, t) {
       )
       .join(
         "",
-      )}</div></section></section><section class="spin-bank"><div>${art("spin")}<span>${text("ui.spins")}<small>${text("ui.spinBankHint")}</small></span><strong data-banked-spins>${number(s.spins)}</strong></div></section><section class="progress-panel"><div class="panel-heading"><span>${text("ui.progression")}</span><b>${s.progression} / ${config.progression.choiceAt}</b></div><div class="progression-dots">${Array.from({ length: config.progression.choiceAt }, (_, i) => `<span class="flame-medal ${i < s.progression ? "lit" : ""}">${art("flame")}</span>`).join("")}</div><p class="panel-caption">${text("ui.progressHint")}</p></section></aside>`;
+      )}</div></section></section><section class="spin-bank"><div>${art("spin")}<span>${text("ui.spins")}<small>${text("ui.spinBankHint")}</small></span><strong data-banked-spins>${number(s.spins)}</strong></div></section><section class="progress-panel"><div class="panel-heading"><span>${text("ui.progression")}</span><b>${s.progression} / ${config.progression.choiceAt}</b></div><div class="progression-dots">${Array.from({ length: config.progression.choiceAt }, (_, i) => `<span class="flame-medal ${i < s.progression ? "lit" : ""}">${art("flame")}</span>`).join("")}</div><p class="panel-caption">${progressionStatus(s, config).locked ? `${text("ui.progressLocked")} ${number(config.progression.adaptive.minimumFill * 100)}%` : text("ui.progressHint")}</p></section></aside>`;
   }
 
   function render(s, l) {
@@ -262,6 +263,8 @@ export function createRenderer(config, t) {
       scene = `<section class="scene reward-scene scene-enter">${sparks()}<div class="reward-emblem">${art("coin")}</div><span class="eyebrow">${text("ui.points")}</span><strong class="points-pop">+${number(s.points)}</strong><h1>${text("ui.reward")}</h1><p>${text("ui.pointsHint")}</p></section>`;
     else if (phase === "grid") scene = gridScene(s, l);
     else if (phase === "progression") scene = progressionScene(s, l);
+    else if (phase === "wheel_transition")
+      scene = `<section class="scene reward-scene scene-enter">${sparks()}<div class="big-fire">${art("flame")}</div><span class="eyebrow">${text("ui.stageUnlocked")}</span><h1>${text(config.wheels[config.progression.nextWheel].label_key)}</h1><p>${text("ui.stageUnlockedHint")}</p></section>`;
     else if (phase === "decision")
       scene = `<section class="scene decision-scene scene-enter"><div class="big-fire">${art("flame")}</div><span class="eyebrow">${text(config.wheels[s.wheel].label_key)}</span><h1>${text("ui.decision")}</h1><p>${text("ui.decisionHint")}</p><div class="actions">${button("continue", "ui.continue", "secondary")}${button("advance", "ui.advance", "primary green-button")}</div></section>`;
     else scene = slotsScene(s, l);

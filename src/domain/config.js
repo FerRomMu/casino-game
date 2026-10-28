@@ -9,6 +9,19 @@ export function validateConfig(config, decks) {
   assert(Object.values(slots.target).reduce((a, b) => a + b, 0) === slots.positions, 'REEL_SIZE');
   assert(config.grid.initial.reduce((sum, tile) => sum + tile.count, 0) === config.grid.rows * config.grid.columns, 'GRID_SIZE');
   assert(config.progression.choiceAt > 0 && config.progression.forceAt > config.progression.choiceAt, 'PROGRESSION');
+  const adaptive = config.progression.adaptive;
+  if (adaptive) {
+    assert(typeof adaptive.enabled === 'boolean', 'ADAPTIVE_ENABLED');
+    if (adaptive.enabled) {
+      const probability = n => Number.isFinite(n) && n >= 0 && n <= 1;
+      assert(probability(adaptive.minimumFill) && probability(adaptive.maximumFill) && adaptive.minimumFill < adaptive.maximumFill && adaptive.maximumFill < 1, 'ADAPTIVE_LIMITS');
+      assert(Math.ceil(slots.reels * slots.positions * adaptive.minimumFill) <= Math.floor(slots.reels * slots.positions * adaptive.maximumFill), 'ADAPTIVE_POSITIONS');
+      assert(probability(adaptive.pityFrom) && probability(adaptive.perMiss) && probability(adaptive.probabilityCeiling) && adaptive.probabilityCeiling > 0, 'ADAPTIVE_PROBABILITY');
+      assert(Array.isArray(adaptive.curve) && adaptive.curve.length >= 2 && adaptive.curve.every((p, i, a) => Array.isArray(p) && p.length === 2 && p.every(probability) && (i === 0 || p[0] > a[i - 1][0])) && adaptive.curve[0][0] === 0 && adaptive.curve.at(-1)[0] === 1, 'ADAPTIVE_CURVE');
+      const categories = config.wheels[config.progression.initialWheel]?.categories ?? [];
+      assert(categories.filter(c => c.behavior === 'progression').length === 1 && categories.filter(c => c.behavior !== 'progression').some(c => c.weight > 0), 'ADAPTIVE_CATEGORIES');
+    }
+  }
   assert(config.final.minSpins > 0 && config.final.maxSpins >= config.final.minSpins, 'FINAL_SPINS');
   assert(config.final.autoFinishWhenComplete === undefined || typeof config.final.autoFinishWhenComplete === 'boolean', 'FINAL_AUTO_FINISH');
   const inventory = {};

@@ -28,7 +28,8 @@
       "explosion": 450,
       "finalReelStop": 800,
       "finalReelStep": 200,
-      "finalReelSettle": 300
+      "finalReelSettle": 300,
+      "wheelTransition": 1400
     },
     "wheelTurns": 5,
     "reducedMotionDuration": 50,
@@ -233,7 +234,16 @@
     "initialWheel": "wheel_1",
     "nextWheel": "wheel_2",
     "choiceAt": 3,
-    "forceAt": 4
+    "forceAt": 4,
+    "adaptive": {
+      "enabled": true,
+      "minimumFill": 0.7,
+      "maximumFill": 0.9,
+      "pityFrom": 0.7,
+      "perMiss": 0.03,
+      "probabilityCeiling": 0.95,
+      "curve": [[0, 0.14], [0.69, 0.14], [0.7, 0.35], [0.8, 0.65], [0.9, 0.9], [1, 0.95]]
+    }
   },
   "final": {
     "autoFinishWhenComplete": true,

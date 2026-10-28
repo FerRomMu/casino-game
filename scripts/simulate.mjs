@@ -39,6 +39,7 @@ for (let game=0;game<count;game++) {
       case 'grid':send({type:'INSERT_TOKENS'});break;
       case 'machine':send({type:'SHOW_PREVIEW'});break;
       case 'preview':send({type:'END_PREVIEW'});break;
+      case 'wheel_transition':send({type:'ADVANCE_WHEEL'});break;
       case 'progression':send({type:'END_PROGRESSION'});break;
       case 'decision':send({type:'CHOOSE_PROGRESSION',continue:config.simulation.continueAtChoice});break;
       case 'finale':send({type:'START_FINAL'});break;

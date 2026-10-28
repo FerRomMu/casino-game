@@ -28,6 +28,7 @@ async function prepare(
   config.ui.reducedMotionDuration = 8;
   for (const key of Object.keys(config.ui.timings)) config.ui.timings[key] = 20;
   Object.assign(config.ui.timings, timings);
+  if (force.wheel_1) config.progression.adaptive.enabled = false;
   for (const [wheel, id] of Object.entries(force))
     for (const category of config.wheels[wheel].categories)
       category.weight = category.id === id ? 1 : 0;
@@ -148,10 +149,12 @@ test("weighted SVG geometry, normalized probabilities and an all-in-one sector",
   page,
 }) => {
   await prepare(page, {
-    mutate: (config) =>
+    mutate: (config) => {
+      config.progression.adaptive.enabled = false;
       config.wheels.wheel_1.categories.forEach(
         (cat, i) => (cat.weight = i === 0 ? 33 : 67 / 6),
-      ),
+      );
+    },
   });
   const sectors = page.locator("[data-sector]");
   await expect(sectors).toHaveCount(7);
@@ -178,7 +181,7 @@ test("double clicks resolve one spin; help keeps the spinning wheel attached", a
 }) => {
   await prepare(page, {
     force: { wheel_1: "cat_1" },
-    timings: { wheel: 650, category: 80 },
+    timings: { wheel: 2000, category: 80 },
     reduced: false,
   });
   await page.locator(".spin-button").evaluate((node) => {
@@ -1049,4 +1052,97 @@ test('grid lights tolerate a frame timestamp preceding animation start', async (
   await page.waitForSelector('#stage[data-phase="wheel"][data-busy="false"]');
   await expect(page.locator('.load-error')).toHaveCount(0);
   expect(Number((await page.locator('[data-filled]').innerText()).split('/')[0])).toBeGreaterThan(0);
+});
+
+async function adaptiveFixture(page, body) {
+  const source=await readFile(new URL('../src/domain/game.js',import.meta.url),'utf8');
+  await page.route('**/src/domain/game.js', route=>route.fulfill({contentType:'text/javascript',body:
+    source.replace('export function createGame(', 'function fixtureBaseGame(')+`
+    export function createGame(config,rng,participantId) {
+      const state=fixtureBaseGame(config,rng,participantId);
+      const full=Array.from({length:config.slots.reels},()=>Object.entries(config.slots.target).flatMap(([symbol,n])=>Array(n).fill(symbol)));
+      ${body}
+      return state;
+    }`,
+  }));
+}
+function adaptiveCategories(config) {
+  config.seed=61;
+  config.progression.adaptive.enabled=true;
+  config.wheels.wheel_1.categories.forEach(c=>c.weight=c.id==='cat_1'||c.behavior==='progression'?1:0);
+}
+
+test('adaptive wheel freezes its geometry while spinning and expands after a missed flame', async ({page}) => {
+  await adaptiveFixture(page, `state.reels=full.map((reel,r)=>reel.map((symbol,p)=>r*config.slots.positions+p<56?symbol:config.slots.stone));state.appearances=2;state.progression=2;`);
+  await prepare(page,{mutate:adaptiveCategories,reduced:false,timings:{wheel:900}});
+  const flame=page.locator('[data-sector="cat_7_progression"]');
+  expect(Number(await flame.getAttribute('data-probability'))).toBeCloseTo(.35,10);
+  await click(page,'spin');
+  await expect(page.locator('#wheel')).toBeVisible();
+  expect(Number(await flame.getAttribute('data-probability'))).toBeCloseTo(.35,10);
+  await ready(page,'cards');
+  await click(page,'pick');
+  await ready(page,'offer');
+  await click(page,'reject');
+  await ready(page,'wheel');
+  expect(Number(await flame.getAttribute('data-probability'))).toBeCloseTo(.38,10);
+  const start=Number(await flame.getAttribute('data-start'));
+  expect(1-start).toBeCloseTo(.38,10);
+  await noOverflow(page);
+});
+
+test('third flame stays visibly locked until the seventy percent threshold is earned', async ({page}) => {
+  await page.setViewportSize({width:390,height:844});
+  await adaptiveFixture(page, `
+    const filled=55;
+    state.reels=full.map((reel,r)=>reel.map((symbol,p)=>r*config.slots.positions+p<filled?symbol:config.slots.stone));
+    state.appearances=2;state.progression=2;
+    state.grid={cells:[{kind:'symbol',symbol:full.flat()[filled],units:1},...Array(config.grid.rows*config.grid.columns-1).fill(null)],pool:[],reserves:[]};
+  `);
+  await prepare(page,{mutate:adaptiveCategories});
+  await expect(page.locator('[data-sector="cat_7_progression"]')).toHaveCount(0);
+  await expect(page.locator('.progress-panel')).toContainText(strings['ui.progressLocked']);
+  await offer(page);await click(page,'accept');await ready(page,'challenge');await click(page,'success');
+  await page.waitForSelector('#stage[data-phase="wheel"][data-busy="false"]');
+  await expect(page.locator('[data-filled]')).toHaveText('56 / 80');
+  expect(Number(await page.locator('[data-sector="cat_7_progression"]').getAttribute('data-probability'))).toBeCloseTo(.35,10);
+  await expect(page.locator('.progress-panel')).not.toContainText(strings['ui.progressLocked']);
+  await noOverflow(page);
+});
+
+test('ninety percent handoff precedes overflow insertion and automatic finale', async ({page}) => {
+  await page.setViewportSize({width:390,height:844});
+  await adaptiveFixture(page, `
+    state.reels=full.map(reel=>[...reel]);
+    const missing=state.reels[0].slice(0,10);
+    for(let i=0;i<10;i++)state.reels[0][i]=config.slots.stone;
+    const totals={};for(const symbol of missing)totals[symbol]=(totals[symbol]??0)+1;
+    const tiles=Object.entries(totals).map(([symbol,units])=>({kind:'symbol',symbol,units}));
+    state.grid={cells:[...tiles,...Array(config.grid.rows*config.grid.columns-tiles.length).fill(null)],pool:[],reserves:[]};
+    state.spins=config.final.maxSpins;state.appearances=3;state.progression=3;state.continued=true;
+  `);
+  await prepare(page,{mutate:adaptiveCategories,reduced:false,timings:{wheelTransition:700}});
+  await page.evaluate(()=>{
+    window.handoffs=[];
+    new MutationObserver(()=>{
+      const stage=document.querySelector('#stage');
+      if(stage)window.handoffs.push({phase:stage.dataset.phase,busy:stage.dataset.busy,
+        filled:Number(document.querySelector('[data-filled]').textContent.split('/')[0]),
+        wheel:document.querySelector('.round-label strong').textContent});
+    }).observe(document.querySelector('#app'),{subtree:true,childList:true});
+  });
+  await offer(page);await click(page,'accept');await ready(page,'challenge');await click(page,'success');
+  await page.waitForSelector('#stage[data-phase="wheel_transition"]');
+  await expect(page.locator('#stage')).toContainText(strings['ui.stageUnlocked']);
+  await noOverflow(page);
+  await page.screenshot({path:'artifacts/adaptive-handoff-mobile.png'});
+  await ready(page,'final_ready');
+  const observed=await page.evaluate(()=>window.handoffs);
+  expect(observed.some(s=>s.phase==='wheel_transition'&&s.filled===72&&s.busy==='true')).toBe(true);
+  expect(observed.filter(s=>s.wheel===strings['wheel_1.label']).every(s=>s.filled<=72)).toBe(true);
+  expect(observed.some(s=>s.wheel===strings['wheel_2.label']&&s.filled>72)).toBe(true);
+  await expect(page.locator('[data-filled]')).toHaveText('80 / 80');
+  await expect(page.locator('[data-remaining-spins]')).toHaveText(String(original.final.maxSpins));
+  await click(page,'final-spin');await ready(page,'final_ready');
+  await expect(page.locator('[data-remaining-spins]')).toHaveText(String(original.final.maxSpins-1));
 });

@@ -17,6 +17,7 @@ const setup = (seed=1) => {
 };
 const forced = id => {
   const clone = structuredClone(config);
+  clone.progression.adaptive.enabled = false;
   for (const wheel of Object.values(clone.wheels)) for (const cat of wheel.categories) cat.weight = cat.id === id ? 1 : 0;
   return clone;
 };
@@ -409,6 +410,8 @@ test('last symbol or last earned spin closes after installation without an extra
 
 test('entering advanced wheel already complete starts final immediately via either progression path', () => {
   const {state, context} = setup();
+  context.config = structuredClone(config);
+  context.config.progression.adaptive.enabled = false;
   state.reels = Array.from({length:config.slots.reels}, () => Object.entries(config.slots.target).flatMap(([symbol, n]) => Array(n).fill(symbol)));
   state.spins = config.final.maxSpins;
   state.phase = 'decision'; state.appearances = config.progression.choiceAt;

@@ -36,7 +36,7 @@ for (const id of ['current', 'bounded_fast']) for (const choice of [false, true]
   }
 }
 const report = {seed:experiment.seed, games:n*scenarios.length, profile, maxTurns:experiment.maxTurns,
-  note:'Paired identical seeds. Current is the deployed first-wheel policy; bounded_fast remains experimental. No UI previews. Maximum is observed, not a hard turn limit.', scenarios};
+  note:'Paired identical seeds. Current identifies the original fixed policy; bounded_fast is now the deployed adaptive policy. No UI previews. Maximum is observed, not a hard turn limit.', scenarios};
 await writeFile('research/progression/completion-results.json', JSON.stringify(report,null,2)+'\n');
 const lines = [
   '# Cierre automático al completar máquina y tiradas', '',
@@ -47,9 +47,9 @@ const lines = [
 ];
 for (const s of scenarios) {
   const triple = x => `${x.q75} / ${x.q90} / ${x.max}`;
-  lines.push(`| ${s.model === 'current' ? 'Actual' : 'Híbrido recomendado'} | ${s.continueAtChoice ? 'Continúa' : 'Pasa'} | ${s.autoFinishWhenComplete ? 'Sí' : 'No'} | ${triple(s.secondWheel)} | ${triple(s.totalTurns)} |`);
+  lines.push(`| ${s.model === 'current' ? 'Original' : 'Híbrido recomendado'} | ${s.continueAtChoice ? 'Continúa' : 'Pasa'} | ${s.autoFinishWhenComplete ? 'Sí' : 'No'} | ${triple(s.secondWheel)} | ${triple(s.totalTurns)} |`);
 }
-lines.push('', 'El híbrido recomendado sigue siendo experimental; la demo sólo incorpora aquí el cierre automático de la segunda ruleta. La primera ruleta actual todavía puede durar mucho, porque su progresión no tiene límite por llenado.', '',
+lines.push('', 'La demo ya incorpora el híbrido recomendado y el cierre automático de la segunda ruleta. La política original queda como referencia histórica; sus giros de primera ruleta no tienen límite por llenado.', '',
   'Los máximos son observados, no límites garantizados. Mientras falten fichas o tiradas, rechazos y fallos pueden prolongar la segunda etapa. Lo que se elimina es seguir girando cuando ya no queda nada por ganar.', '',
   'Repetir con `node scripts/compare-completion.mjs`. Datos: [completion-results.json](completion-results.json). Las reglas y el perfil se cargan desde los JSON existentes; se omiten las muestras sin premio y las animaciones.', '');
 await writeFile('research/progression/COMPLETION.md', lines.join('\n'));

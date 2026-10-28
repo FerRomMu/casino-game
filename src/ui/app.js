@@ -215,7 +215,7 @@ try {
     local.presentation = "wheel";
     local.wheelSpinning = true;
     send({ type: "SPIN_WHEEL" });
-    if (state.phase === "finale" && !state.category) {
+    if (["finale", "wheel_transition"].includes(state.phase) && !state.category) {
       local.presentation = null;
       local.wheelSpinning = false;
       render();
@@ -349,6 +349,10 @@ try {
     local.upgradedCells = [];
     render();
     await wait("reward");
+    await animateInsertion();
+  }
+
+  async function animateInsertion() {
     local.displayReels = structuredClone(state.reels);
     local.displayStops = local.displayReels.map((reel) =>
       Math.max(0, reel.indexOf(config.slots.stone)),
@@ -381,7 +385,7 @@ try {
     local.slotSpinning = true;
     local.prizeVisible = false;
     send({ type: "SHOW_PREVIEW" });
-    if (state.phase === "finale") {
+    if (["finale", "wheel_transition"].includes(state.phase)) {
       local.slotSpinning = false;
       local.collected = [];
       render();
@@ -555,6 +559,13 @@ try {
         case "restart":
           resetGame();
           break;
+      }
+      if (state.phase === "wheel_transition") {
+        play("fire");
+        announce("ui.stageUnlocked");
+        await wait("wheelTransition");
+        send({ type: "ADVANCE_WHEEL" });
+        await animateInsertion();
       }
       if (state.phase === "finale") {
         play("win");

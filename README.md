@@ -34,7 +34,7 @@ La partida se ejecuta en memoria. Cada carga obtiene una semilla nueva del naveg
 - Animaciones de cartas, selección de fichas, vuelos reales hacia el inventario y los rodillos, reemplazos del tablero, fuego y premios. Las fichas recogidas se muestran después de extraerse; los rodillos frenan de a uno.
 - Protección frente a clicks repetidos durante las secuencias. La ayuda se puede abrir durante las animaciones sin reemplazar ni interrumpir la escena en curso.
 - Una única tirada de muestra tras cada recompensa: si aumenta el máximo alcanzable, lo muestra y anuncia el nuevo récord; de lo contrario, muestra una tirada aleatoria. No consume tiradas ni acredita premios. Los umbrales y tamaños del número se configuran en `ui.prizeTiers`.
-- Tercera aparición de progresión: elegir pasar o continuar. Cuarta aparición: pase obligatorio.
+- Primera ruleta adaptativa: permite acumular dos llamas antes del 70% de llenado. Desde ese mínimo habilita la tercera para elegir pasar o continuar; la cuarta obliga a pasar. Al alcanzar el 90% cambia de etapa automáticamente, conservando las fichas excedentes para incorporarlas en la segunda ruleta.
 - Primera aparición de la categoría final: acceso directo al tragamonedas, con una tirada por click, frenado pausado de izquierda a derecha y resaltado de los símbolos que realmente pagan (incluidos Wild y un único multiplicador). El pozo acumulado se muestra junto al máximo total: acumulado + máximo por tirada × tiradas restantes. Ambos se actualizan al terminar de frenar, sin revelar el resultado durante el giro.
 - La segunda ruleta también cierra automáticamente cuando están completas todas las posiciones y se ganó el máximo de tiradas. Después de incorporar la última recompensa se pasa directamente al final, sin otra tirada de muestra ni otro giro de ruleta. También se comprueba al entrar desde la primera ruleta. Se configura con `final.autoFinishWhenComplete`, usando `slots` y `final.maxSpins` como límites.
 - Juego ajustado a `100dvh`, sin scroll de página, con título y sonido dentro del gabinete, fondo texturado e inventario siempre visible. Diseño adaptable y preferencia `prefers-reduced-motion`.
@@ -53,9 +53,21 @@ Todos los valores del juego y el contenido provisional están en `content/`:
 
 ### Cambiar las probabilidades
 
-Modificar `wheels.<wheel_id>.categories[].weight`. Los pesos se normalizan: no tienen que sumar cien. Por ejemplo, pesos `33` y `67` representan 33 % y 67 %; pesos `1` y `2` representan un tercio y dos tercios. Para que una categoría ocupe 33 % de una ruleta de siete categorías, los otros seis pesos deben sumar 67. Un peso cero oculta el sector y excluye la categoría del sorteo. Pesos negativos y ruletas sin peso positivo se rechazan al cargar.
+Modificar `wheels.<wheel_id>.categories[].weight`. Los pesos estáticos se normalizan: no tienen que sumar cien. Por ejemplo, pesos `33` y `67` representan 33 % y 67 %; pesos `1` y `2` representan un tercio y dos tercios. Un peso cero oculta el sector y excluye la categoría del sorteo. Pesos negativos y ruletas sin peso positivo se rechazan al cargar. En la primera ruleta, el modo adaptativo controla la probabilidad de la categoría de progresión y conserva las proporciones entre las demás; para usar sólo pesos estáticos, configurar `progression.adaptive.enabled: false`.
 
 La función `wheelSectors` produce tanto los límites utilizados por el dibujo SVG como los utilizados por el sorteo. Los porcentajes de la leyenda se redondean sólo para mostrarlos.
+
+### Progresión adaptativa de la primera ruleta
+
+`progression.adaptive` configura el modelo recomendado por las simulaciones:
+
+- `minimumFill: 0.7` y `maximumFill: 0.9`: con 80 posiciones, la tercera llama se habilita desde 56 y el pase es obligatorio al incorporar 72. Si ya hay dos llamas antes del mínimo, la categoría se oculta temporalmente y el panel explica cuándo se habilita.
+- `curve`: puntos `[llenado, probabilidad]`, interpolados linealmente. La configuración ensayada usa 14% hasta 69% de llenado, 35% al 70%, 65% al 80% y 90% al 90%.
+- `pityFrom: 0.7`, `perMiss: 0.03`, `probabilityCeiling: 0.95`: desde el mínimo, cada giro sin llama suma tres puntos porcentuales, hasta 95%. Al salir una llama se reinicia; los giros anteriores al mínimo no acumulan esta bonificación.
+- La ruleta y su leyenda usan `wheelCategories(state, config)`. Durante el giro se conserva la geometría del sorteo: la siguiente probabilidad sólo aparece al volver a la ruleta.
+- Una recompensa grande se divide por unidades: se incorporan fichas hasta el límite, se muestra el cambio de etapa y se incorporan todas las restantes en la segunda ruleta. No se descartan unidades ni se reemplazan símbolos instalados. El excedente puede dejar la segunda ruleta por encima del 90%, como en la simulación; nunca completa la primera.
+
+El dominio expone la fase `wheel_transition` y la acción `ADVANCE_WHEEL`. La UI sólo anima el resultado, usando `ui.timings.wheelTransition`. Después de incorporar el excedente se muestra una única tirada de ejemplo, o se pasa al final si ya están completos la máquina y el banco de tiradas.
 
 ### Cartas y contenido
 
@@ -109,7 +121,7 @@ La simulación escribe `artifacts/simulation.json`, incluyendo cuartiles, median
 
 La comparación de modelos de transición se ejecuta con `npm run simulate:progression`. Usa los parámetros externos de `research/progression/models.json`, reutiliza las reglas del dominio y no cambia la demo. Ver el [informe de 112.000 partidas](research/progression/REPORT.md), incluyendo llenado al pasar, recompensas que cruzan el límite, duración por perfil y resultados de la fase final. Permite `--games`, `--seed`, `--content`, `--experiment` y `--out` para repetir o modificar el experimento.
 
-Ese experimento histórico conserva `autoFinishWhenComplete: false`. Para comparar el cierre automático con las mismas semillas, ejecutar `node scripts/compare-completion.mjs`: escribe `research/progression/completion-results.json`, con percentiles de giros por ruleta y totales, tanto para la primera ruleta actual como para el modelo recomendado. El cierre por completar evita giros sin progreso posible; no impone un máximo de giros mientras aún falten fichas o tiradas.
+Ese experimento histórico conserva `autoFinishWhenComplete: false`. Para comparar el cierre automático con las mismas semillas, ejecutar `node scripts/compare-completion.mjs`: escribe `research/progression/completion-results.json`, con percentiles de giros por ruleta y totales, tanto para la primera ruleta original como para el modelo recomendado, ahora implementado. Las pruebas contrastan las decisiones, inventarios y premios del simulador experimental con la máquina de estados de producción usando las mismas semillas y omitiendo las muestras sin premio. El cierre por completar evita giros sin progreso posible; no impone un máximo de giros mientras aún falten fichas o tiradas.
 
 El informe distingue partidas completas con la progresión real de la máquina y finales con la máquina completamente formada. Las probabilidades por tirada de los jackpots de la máquina completa se calculan exactamente, enumerando combinaciones de símbolos ponderadas por sus cantidades, además del muestreo de premios.
 

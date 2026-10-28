@@ -6,16 +6,16 @@ El cierre automático usa la misma condición del dominio que la demo: segunda r
 
 | Primera ruleta | Decisión | Cierre automático | Segunda: Q75 / Q90 / máx. | Total: Q75 / Q90 / máx. |
 |---|---|---|---:|---:|
-| Actual | Pasa | No | 14 / 22 / 84 | 39 / 50 / 108 |
-| Actual | Pasa | Sí | 4 / 8 / 17 | 27 / 36 / 92 |
-| Actual | Continúa | No | 14 / 23 / 79 | 48 / 59 / 120 |
-| Actual | Continúa | Sí | 2 / 5 / 16 | 35 / 46 / 112 |
+| Original | Pasa | No | 14 / 22 / 84 | 39 / 50 / 108 |
+| Original | Pasa | Sí | 4 / 8 / 17 | 27 / 36 / 92 |
+| Original | Continúa | No | 14 / 23 / 79 | 48 / 59 / 120 |
+| Original | Continúa | Sí | 2 / 5 / 16 | 35 / 46 / 112 |
 | Híbrido recomendado | Pasa | No | 14 / 22 / 79 | 30 / 38 / 91 |
 | Híbrido recomendado | Pasa | Sí | 5 / 5 / 8 | 20 / 21 / 25 |
 | Híbrido recomendado | Continúa | No | 14 / 23 / 76 | 31 / 40 / 95 |
 | Híbrido recomendado | Continúa | Sí | 4 / 5 / 7 | 21 / 22 / 25 |
 
-El híbrido recomendado sigue siendo experimental; la demo sólo incorpora aquí el cierre automático de la segunda ruleta. La primera ruleta actual todavía puede durar mucho, porque su progresión no tiene límite por llenado.
+La demo ya incorpora el híbrido recomendado y el cierre automático de la segunda ruleta. La política original queda como referencia histórica; sus giros de primera ruleta no tienen límite por llenado.
 
 Los máximos son observados, no límites garantizados. Mientras falten fichas o tiradas, rechazos y fallos pueden prolongar la segunda etapa. Lo que se elimina es seguir girando cuando ya no queda nada por ganar.
 
