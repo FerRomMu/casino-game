@@ -905,6 +905,7 @@ for (const [width, height] of [
   [320, 568],
   [390, 844],
   [844, 390],
+  [1060, 592],
   [1440, 900],
 ]) {
   test(`complete prize table fits above reels at ${width}x${height}`, async ({

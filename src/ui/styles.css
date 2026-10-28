@@ -4526,3 +4526,56 @@ body {
     min-height: 52px;
   }
 }
+
+/* Give the pay glass, reel window and progress rail the available desktop height. */
+@media (min-width: 901px) {
+  .machine-status {
+    justify-content: flex-start;
+  }
+  .machine-status .composition {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .machine-status .symbol-progress {
+    flex: 1;
+    width: clamp(86px, 32%, 126px);
+    height: auto;
+    min-height: 100px;
+  }
+  .slots-scene .payout-panel {
+    padding-block: clamp(7px, 1.3cqh, 14px);
+  }
+  .slots-scene .payout-heading h2 {
+    font-size: clamp(16px, 2.2cqh, 22px);
+  }
+  .slots-scene .payout-table thead th {
+    height: clamp(16px, 2.2cqh, 24px);
+  }
+  .slots-scene .payout-table tbody th .symbol {
+    width: clamp(26px, 3.6cqh, 38px);
+    height: clamp(26px, 3.6cqh, 38px);
+  }
+  .slots-scene .payout-table td {
+    height: clamp(28px, 4cqh, 42px);
+    font-size: clamp(13px, 1.8cqh, 18px);
+  }
+  .slots-scene .payout-jackpot {
+    padding-block: clamp(4px, 0.9cqh, 10px);
+  }
+  .slots-scene .payout-jackpot-symbols .symbol {
+    width: clamp(24px, 3.4cqh, 36px);
+    height: clamp(24px, 3.4cqh, 36px);
+  }
+  .slots-scene {
+    --slot-cell-height: clamp(62px, 8.5cqh, 88px);
+  }
+  .slots-scene .machine-marquee {
+    height: clamp(30px, 4.5cqh, 48px);
+  }
+  .slots-scene .machine-base {
+    height: clamp(20px, 3cqh, 30px);
+  }
+}
