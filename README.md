@@ -106,6 +106,8 @@ Si existe `/usr/bin/chromium`, se utiliza directamente; `CHROMIUM_PATH` permite 
 
 La simulación escribe `artifacts/simulation.json`, incluyendo cuartiles, mediana, premios, composición final, tiradas utilizadas y comparación con los objetivos configurados. Permite `--content <directorio>` para probar otra configuración sin modificar el código. `--spins` indica la cantidad de finales simulados con máquina completa; cada final utiliza entre el mínimo y máximo de tiradas configurados.
 
+La comparación de modelos de transición se ejecuta con `npm run simulate:progression`. Usa los parámetros externos de `research/progression/models.json`, reutiliza las reglas del dominio y no cambia la demo. Ver el [informe de 112.000 partidas](research/progression/REPORT.md), incluyendo llenado al pasar, recompensas que cruzan el límite, duración por perfil y resultados de la fase final. Permite `--games`, `--seed`, `--content`, `--experiment` y `--out` para repetir o modificar el experimento.
+
 El informe distingue partidas completas con la progresión real de la máquina y finales con la máquina completamente formada. Las probabilidades por tirada de los jackpots de la máquina completa se calculan exactamente, enumerando combinaciones de símbolos ponderadas por sus cantidades, además del muestreo de premios.
 
 `npm run build` genera `dist/`. Para servirlo: `node scripts/serve.mjs dist`. El servidor utiliza el puerto 5173; se puede cambiar con la variable `PORT`.

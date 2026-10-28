@@ -1,0 +1,22 @@
+{
+  "seed": 20261028,
+  "gamesPerScenario": 2000,
+  "maxTurns": 1000,
+  "target": {"minimum": 0.7, "maximum": 0.9},
+  "choices": [false, true],
+  "profiles": [
+    {"id": "typical", "accept": 0.85, "success": 0.7, "numeric": "uniform"},
+    {"id": "low", "accept": 0.5, "success": 0.4, "numeric": "binomial"},
+    {"id": "high", "accept": 1, "success": 0.95, "numeric": "binomial"},
+    {"id": "scarce", "accept": 0.2, "success": 0.25, "numeric": "binomial"}
+  ],
+  "models": [
+    {"id": "current", "kind": "current"},
+    {"id": "waiting", "kind": "waiting", "base": 0.03, "perMiss": 0.025, "ceiling": 0.75},
+    {"id": "fill", "kind": "curve", "curve": [[0,0.05],[0.5,0.05],[0.7,0.15],[0.8,0.35],[0.9,0.7],[1,0.95]]},
+    {"id": "gated_curve", "kind": "curve", "gate": 0.7, "curve": [[0,0.05],[0.5,0.05],[0.7,0.15],[0.8,0.35],[0.9,0.7],[1,0.95]]},
+    {"id": "bounded_hybrid", "kind": "curve", "gate": 0.7, "cap": 0.9, "pityFrom": 0.7, "perMiss": 0.02, "ceiling": 0.9, "curve": [[0,0.05],[0.5,0.05],[0.7,0.15],[0.8,0.35],[0.9,0.7],[1,0.95]]},
+    {"id": "bounded_fast", "kind": "curve", "gate": 0.7, "cap": 0.9, "pityFrom": 0.7, "perMiss": 0.03, "ceiling": 0.95, "curve": [[0,0.14],[0.69,0.14],[0.7,0.35],[0.8,0.65],[0.9,0.9],[1,0.95]]},
+    {"id": "threshold_80", "kind": "threshold", "cap": 0.8}
+  ]
+}
