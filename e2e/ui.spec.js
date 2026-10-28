@@ -70,27 +70,13 @@ async function noOverflow(page) {
   ).toBe(true);
 }
 
-test("every configured illustration has visible SVG geometry", async ({
-  page,
-}) => {
+test("symbol progress starts empty without per-symbol rows", async ({ page }) => {
   await prepare(page);
-  await expect(page.locator(".inventory-table")).toBeVisible();
-  const geometry = await page
-    .locator(".inventory-table [data-symbol]")
-    .evaluateAll((nodes) =>
-      nodes.map((node) => {
-        const box = node.querySelector("use").getBBox();
-        return {
-          id: node.dataset.symbol,
-          width: box.width,
-          height: box.height,
-        };
-      }),
-    );
-  expect(geometry).toHaveLength(Object.keys(original.slots.target).length);
-  expect(
-    geometry.filter((item) => item.width <= 0 || item.height <= 0),
-  ).toEqual([]);
+  const progress = page.getByRole("progressbar", { name: strings["ui.inventory"] });
+  await expect(progress).toBeVisible();
+  await expect(progress).toHaveAttribute("aria-valuenow", "0");
+  await expect(progress).toHaveAttribute("aria-valuemax", "80");
+  await expect(page.locator(".inventory-table")).toHaveCount(0);
 });
 
 test("cards move and one is chosen automatically", async ({ page }) => {
@@ -521,7 +507,7 @@ async function contentFits(page) {
   await expect(async () => {
     const clipped = await page
       .locator(
-        ".inventory-table, .inventory-table > div, #stage button:not(:disabled), .cabinet-controls button",
+        ".symbol-progress, #stage button:not(:disabled), .cabinet-controls button",
       )
       .evaluateAll((nodes) =>
         nodes.flatMap((node) => {
@@ -547,7 +533,7 @@ for (const [width, height] of [
   [844, 390],
   [1280, 720],
 ]) {
-  test(`cabinet controls and persistent inventory fit ${width}x${height}`, async ({
+  test(`cabinet controls and symbol progress fit ${width}x${height}`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height });
@@ -869,6 +855,8 @@ test("pay table updates as symbols are installed and matches the domain before t
         filled: Number(
           document.querySelector("[data-filled]").textContent.split("/")[0],
         ),
+        progress: Number(document.querySelector(".symbol-progress").getAttribute("aria-valuenow")),
+        growing: document.querySelector(".symbol-progress").classList.contains("is-growing"),
         maximum: Number(panel.dataset.prizeMaximum),
         rows: [...panel.querySelectorAll("[data-pay-symbol]")].map((row) => ({
           symbol: row.dataset.paySymbol,
@@ -893,6 +881,8 @@ test("pay table updates as symbols are installed and matches the domain before t
   await page.waitForSelector('#stage[data-phase="wheel"][data-busy="false"]');
   const tables = await page.evaluate(() => window.payTables);
   expect(tables[0].filled).toBe(0);
+  expect(tables.some((t) => t.growing && t.progress === t.filled && t.filled > 0)).toBe(true);
+  expect(tables.at(-1).progress).toBe(tables.at(-1).filled);
   expect(tables[0].maximum).toBe(0);
   expect(
     tables.some(

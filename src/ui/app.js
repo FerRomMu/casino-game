@@ -42,6 +42,7 @@ try {
     drawIndex: 0,
     upgradedCells: [],
     displayReels: null,
+    previousFilled: 0,
     prizeVisible: false,
     cardLeaving: false,
     sound: config.ui.soundEnabled,
@@ -471,6 +472,7 @@ try {
       drawIndex: 0,
       upgradedCells: [],
       displayReels: null,
+      previousFilled: 0,
       prizeVisible: false,
       cardLeaving: false,
     });

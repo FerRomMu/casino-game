@@ -702,35 +702,12 @@ summary {
   font-size: 8px;
   color: #b49ac7;
 }
-.capacity-bar {
-  height: 6px;
-  border-radius: 5px;
-  background: #130821;
-  margin-top: 11px;
-  box-shadow: inset 0 1px 3px #0007;
-  overflow: hidden;
-}
-.capacity-bar i {
-  display: block;
-  height: 100%;
-  width: var(--fill);
-  background: linear-gradient(90deg, #a559f4, #e792ea 60%, #ffc68c);
-  border-radius: 5px;
-  box-shadow: 0 0 10px #db80e7;
-  transition: width 0.5s;
-}
 .panel-caption {
   font-size: 9px;
   line-height: 1.5;
   color: #ac8fc3;
   margin-top: 10px;
 }
-.composition {
-  border-top: 1px solid #b883dc20;
-  margin-top: 15px;
-  padding-top: 5px;
-}
-.composition summary,
 .category-details summary {
   list-style: none;
   cursor: pointer;
@@ -742,41 +719,72 @@ summary {
   font-size: 9px;
   color: #c3a5d8;
 }
-.composition summary::-webkit-details-marker,
 .category-details summary::-webkit-details-marker {
   display: none;
 }
-.composition summary > span,
 .category-details summary > span {
   font-size: 15px;
   color: #b98bd5;
   transition: transform 0.2s;
 }
-.composition[open] summary > span,
 .category-details[open] summary > span {
   transform: rotate(180deg);
 }
-.inventory-table {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px 12px;
-  margin-top: 8px;
+.composition {
+  border-top: 1px solid #b883dc20;
+  margin-top: 15px;
+  padding-top: 13px;
 }
-.inventory-table > div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 5px;
+.composition h2 {
+  margin: 0 0 12px;
+  color: #e8c894;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
-.inventory-table .symbol {
-  width: 25px;
-  height: 25px;
+.symbol-progress {
+  position: relative;
+  height: 58px;
+  overflow: hidden;
+  border: 2px solid #e5b66a;
+  border-radius: 15px;
+  background:
+    linear-gradient(100deg, #6654a644, #b64aa344, #e5688844, #f5bb6244, #54c8cf44),
+    #170c2b;
+  background-size: 220% 100%;
+  animation: symbol-progress-track 8s ease-in-out infinite alternate;
+  box-shadow: inset 0 4px 12px #080410, 0 0 18px #a85ff42b;
 }
-.inventory-table > div > span:last-child {
-  font-size: 9px;
-  letter-spacing: 1px;
-  color: #c8b0d8;
-  white-space: nowrap;
+.symbol-progress-fill {
+  position: absolute;
+  inset: 3px auto 3px 3px;
+  width: var(--fill);
+  border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(90deg, #6663f8, #b04df5, #f35dbe, #ffad4d, #ffe17a, #65dfd7);
+  box-shadow: 0 0 18px #f69bd588, inset 0 2px 2px #ffffff77;
+}
+.symbol-progress.is-growing .symbol-progress-fill {
+  animation: symbol-progress-grow 650ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.symbol-progress-fill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 20%, #fff8 42%, transparent 65%);
+  background-size: 220% 100%;
+  animation: symbol-progress-shine 2.2s linear infinite;
+}
+.symbol-progress-fill::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  background: #fff9;
+  filter: blur(9px);
+  animation: symbol-progress-glow 1.5s ease-in-out infinite alternate;
 }
 .spin-bank {
   background:
@@ -2703,6 +2711,19 @@ footer > .text-button {
     rotate: 0deg;
   }
 }
+@keyframes symbol-progress-grow {
+  from { width: var(--from); }
+  to { width: var(--fill); }
+}
+@keyframes symbol-progress-track {
+  to { background-position: 100% 0; }
+}
+@keyframes symbol-progress-shine {
+  to { background-position: -220% 0; }
+}
+@keyframes symbol-progress-glow {
+  to { opacity: 0.45; }
+}
 @keyframes card-flip {
   from {
     opacity: 0;
@@ -3111,26 +3132,6 @@ body {
   letter-spacing: 0;
   margin: 0 0 8px;
 }
-.inventory-table {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-.inventory-table > div {
-  padding: 4px;
-  background: #210c3780;
-  border: 1px solid #b478c324;
-  border-radius: 6px;
-  gap: 5px;
-}
-.inventory-table .symbol {
-  width: 30px;
-  height: 30px;
-}
-.inventory-table > div > span:last-child {
-  font-size: 10px;
-  white-space: nowrap;
-}
 .spin-bank {
   padding: 12px;
 }
@@ -3317,12 +3318,8 @@ body {
   .jackpot-panel > strong {
     font-size: 30px;
   }
-  .inventory-table .symbol {
-    width: 25px;
-    height: 25px;
-  }
-  .inventory-table > div > span:last-child {
-    font-size: 8px;
+  .symbol-progress {
+    height: 48px;
   }
   .cabinet-heading {
     padding: 4px 4px 8px;
@@ -3470,9 +3467,6 @@ body {
   .capacity-label span {
     display: none;
   }
-  .capacity-bar {
-    display: none;
-  }
   .composition {
     border: 0;
     padding: 0;
@@ -3482,20 +3476,12 @@ body {
     font-size: 9px;
     margin-bottom: 5px;
   }
-  .inventory-table {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 3px;
+  .symbol-progress {
+    height: 32px;
+    border-radius: 9px;
   }
-  .inventory-table > div {
-    padding: 2px;
-    gap: 3px;
-  }
-  .inventory-table .symbol {
-    width: 23px;
-    height: 23px;
-  }
-  .inventory-table > div > span:last-child {
-    font-size: 8px;
+  .symbol-progress-fill {
+    border-radius: 6px;
   }
   .spin-bank,
   .progress-panel {
@@ -3796,23 +3782,6 @@ body {
   }
   .wheel-scene {
     padding-bottom: 28px;
-  }
-}
-.inventory-table {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-.inventory-table > div {
-  min-width: 0;
-}
-.inventory-table > div > span:last-child {
-  letter-spacing: 0;
-}
-@media (max-width: 600px) and (orientation: portrait) {
-  .inventory-table {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  .inventory-table > div > span:last-child {
-    font-size: 9px;
   }
 }
 /* Keep all collected tiles visible, including chained blast rewards. */
