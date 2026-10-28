@@ -1,0 +1,11 @@
+{
+  "seed": 20261028,
+  "unit": 1000,
+  "roundTo": 5000,
+  "targetQuantiles": {"0.5": 300000, "0.75": 400000, "0.9": 500000, "0.99": 1000000},
+  "lowReference": 100000,
+  "lowReferenceIsMinimum": false,
+  "scenario": "complete_machine_maximum_final_spins",
+  "search": {"iterations": 100, "population": 12, "refinementIterations": 100, "refinementPopulation": 8, "refinementRadius": 30000},
+  "validationFinals": 1000000
+}

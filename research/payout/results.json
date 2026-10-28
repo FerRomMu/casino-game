@@ -1,0 +1,891 @@
+{
+  "sourceHash": "08db41e6887d36e63ab5b90afe477419b7435266537e4ae9e984fdd36a2f58c1",
+  "experiment": {
+    "seed": 20261028,
+    "unit": 1000,
+    "roundTo": 5000,
+    "targetQuantiles": {
+      "0.5": 300000,
+      "0.75": 400000,
+      "0.9": 500000,
+      "0.99": 1000000
+    },
+    "lowReference": 100000,
+    "lowReferenceIsMinimum": false,
+    "scenario": "complete_machine_maximum_final_spins",
+    "search": {
+      "iterations": 100,
+      "population": 12,
+      "refinementIterations": 100,
+      "refinementPopulation": 8,
+      "refinementRadius": 30000
+    },
+    "validationFinals": 1000000
+  },
+  "spins": 5,
+  "reels": {
+    "lemon": 5,
+    "orange": 4,
+    "cherry": 3,
+    "bell": 3,
+    "diamond": 2,
+    "seven": 1,
+    "wild": 1,
+    "x2": 1
+  },
+  "method": "weighted enumeration of full-reel lines and finite convolution of independent paid spins",
+  "note": "No progression, rejection or incomplete machines; floating-point FFT; production unchanged.",
+  "objectiveEvaluations": 28818,
+  "models": [
+    {
+      "model": "current",
+      "table": {
+        "lemon": [
+          0,
+          1000,
+          5000,
+          20000,
+          100000
+        ],
+        "orange": [
+          0,
+          2000,
+          8000,
+          40000,
+          200000
+        ],
+        "cherry": [
+          0,
+          3000,
+          12000,
+          60000,
+          300000
+        ],
+        "bell": [
+          0,
+          5000,
+          20000,
+          100000,
+          500000
+        ],
+        "diamond": [
+          0,
+          10000,
+          40000,
+          200000,
+          1000000
+        ],
+        "seven": [
+          0,
+          20000,
+          80000,
+          400000,
+          1000000
+        ]
+      },
+      "objective": 0.3106231970704488,
+      "quantiles": {
+        "0.01": 47000,
+        "0.05": 60000,
+        "0.1": 68000,
+        "0.25": 89000,
+        "0.5": 125000,
+        "0.75": 180000,
+        "0.9": 273000,
+        "0.95": 352000,
+        "0.99": 600000,
+        "0.999": 1130000
+      },
+      "mean": 156751.37500003687,
+      "probabilityBelow100k": 0.3288238731438221,
+      "probabilityAtMost100k": 0.3475298778257167,
+      "probabilityMillionOrMore": 0.003156238022783754,
+      "perSpinOrdinaryJackpot": 0.0005875000000000001,
+      "perSpinExceptionalJackpot": 6.250000000000002e-06,
+      "finalAnyOrdinaryJackpot": 0.002934050464697191,
+      "finalAnyExceptionalJackpot": 3.124960937739285e-05,
+      "perSpinDistribution": [
+        {
+          "payout": 0,
+          "probability": 0.00010000000000000003
+        },
+        {
+          "payout": 2000,
+          "probability": 0.00012500000000000003
+        },
+        {
+          "payout": 4000,
+          "probability": 0.0016000000000000007
+        },
+        {
+          "payout": 5000,
+          "probability": 0.08887500000000004
+        },
+        {
+          "payout": 6000,
+          "probability": 0.01110000000000001
+        },
+        {
+          "payout": 8000,
+          "probability": 0.06180000000000001
+        },
+        {
+          "payout": 10000,
+          "probability": 0.16818750000000016
+        },
+        {
+          "payout": 12000,
+          "probability": 0.0707625
+        },
+        {
+          "payout": 16000,
+          "probability": 0.01710000000000001
+        },
+        {
+          "payout": 20000,
+          "probability": 0.29072500000000007
+        },
+        {
+          "payout": 24000,
+          "probability": 0.014062500000000007
+        },
+        {
+          "payout": 40000,
+          "probability": 0.1498624999999998
+        },
+        {
+          "payout": 60000,
+          "probability": 0.021599999999999994
+        },
+        {
+          "payout": 80000,
+          "probability": 0.04423750000000002
+        },
+        {
+          "payout": 100000,
+          "probability": 0.031043750000000016
+        },
+        {
+          "payout": 120000,
+          "probability": 0.001575000000000001
+        },
+        {
+          "payout": 160000,
+          "probability": 0.003937500000000005
+        },
+        {
+          "payout": 200000,
+          "probability": 0.01572500000000001
+        },
+        {
+          "payout": 300000,
+          "probability": 0.001593750000000001
+        },
+        {
+          "payout": 400000,
+          "probability": 0.0036250000000000006
+        },
+        {
+          "payout": 500000,
+          "probability": 0.001593750000000001
+        },
+        {
+          "payout": 800000,
+          "probability": 0.00017499999999999994
+        },
+        {
+          "payout": 1000000,
+          "probability": 0.0005875
+        },
+        {
+          "payout": 5000000,
+          "probability": 6.250000000000002e-06
+        }
+      ]
+    },
+    {
+      "model": "scaled",
+      "table": {
+        "lemon": [
+          0,
+          5000,
+          10000,
+          35000,
+          170000
+        ],
+        "orange": [
+          0,
+          5000,
+          15000,
+          70000,
+          345000
+        ],
+        "cherry": [
+          0,
+          5000,
+          20000,
+          105000,
+          515000
+        ],
+        "bell": [
+          0,
+          10000,
+          35000,
+          170000,
+          855000
+        ],
+        "diamond": [
+          0,
+          15000,
+          70000,
+          345000,
+          1000000
+        ],
+        "seven": [
+          0,
+          35000,
+          135000,
+          685000,
+          1000000
+        ]
+      },
+      "objective": 0.03339991701873836,
+      "quantiles": {
+        "0.01": 80000,
+        "0.05": 105000,
+        "0.1": 120000,
+        "0.25": 155000,
+        "0.5": 220000,
+        "0.75": 310000,
+        "0.9": 470000,
+        "0.95": 605000,
+        "0.99": 1025000,
+        "0.999": 1505000
+      },
+      "mean": 267984.6875000481,
+      "probabilityBelow100k": 0.03725516958411508,
+      "probabilityAtMost100k": 0.048835328501435536,
+      "probabilityMillionOrMore": 0.011381896971905135,
+      "perSpinOrdinaryJackpot": 0.0007625000000000002,
+      "perSpinExceptionalJackpot": 6.250000000000002e-06,
+      "finalAnyOrdinaryJackpot": 0.0038066903690326948,
+      "finalAnyExceptionalJackpot": 3.124960937739285e-05,
+      "perSpinDistribution": [
+        {
+          "payout": 0,
+          "probability": 0.00010000000000000003
+        },
+        {
+          "payout": 10000,
+          "probability": 0.10170000000000008
+        },
+        {
+          "payout": 15000,
+          "probability": 0.18600000000000017
+        },
+        {
+          "payout": 20000,
+          "probability": 0.11475000000000006
+        },
+        {
+          "payout": 30000,
+          "probability": 0.050450000000000085
+        },
+        {
+          "payout": 35000,
+          "probability": 0.2573749999999998
+        },
+        {
+          "payout": 40000,
+          "probability": 0.014062500000000007
+        },
+        {
+          "payout": 70000,
+          "probability": 0.1498624999999998
+        },
+        {
+          "payout": 105000,
+          "probability": 0.021599999999999994
+        },
+        {
+          "payout": 135000,
+          "probability": 0.03153750000000001
+        },
+        {
+          "payout": 140000,
+          "probability": 0.012700000000000003
+        },
+        {
+          "payout": 170000,
+          "probability": 0.031043750000000016
+        },
+        {
+          "payout": 210000,
+          "probability": 0.001575000000000001
+        },
+        {
+          "payout": 270000,
+          "probability": 0.003937500000000005
+        },
+        {
+          "payout": 340000,
+          "probability": 0.001575000000000001
+        },
+        {
+          "payout": 345000,
+          "probability": 0.014150000000000008
+        },
+        {
+          "payout": 515000,
+          "probability": 0.001593750000000001
+        },
+        {
+          "payout": 685000,
+          "probability": 0.0029750000000000024
+        },
+        {
+          "payout": 690000,
+          "probability": 0.00065
+        },
+        {
+          "payout": 855000,
+          "probability": 0.001593750000000001
+        },
+        {
+          "payout": 1000000,
+          "probability": 0.0005875
+        },
+        {
+          "payout": 1370000,
+          "probability": 0.00017499999999999994
+        },
+        {
+          "payout": 5000000,
+          "probability": 6.250000000000002e-06
+        }
+      ]
+    },
+    {
+      "model": "compressed",
+      "table": {
+        "lemon": [
+          0,
+          5000,
+          15000,
+          50000,
+          190000
+        ],
+        "orange": [
+          0,
+          5000,
+          25000,
+          90000,
+          335000
+        ],
+        "cherry": [
+          0,
+          10000,
+          30000,
+          125000,
+          475000
+        ],
+        "bell": [
+          0,
+          15000,
+          50000,
+          190000,
+          730000
+        ],
+        "diamond": [
+          0,
+          25000,
+          90000,
+          335000,
+          1000000
+        ],
+        "seven": [
+          0,
+          50000,
+          155000,
+          605000,
+          1000000
+        ]
+      },
+      "objective": 0.0017163587438024626,
+      "quantiles": {
+        "0.01": 130000,
+        "0.05": 155000,
+        "0.1": 180000,
+        "0.25": 225000,
+        "0.5": 295000,
+        "0.75": 395000,
+        "0.9": 540000,
+        "0.95": 670000,
+        "0.99": 995000,
+        "0.999": 1440000
+      },
+      "mean": 337671.0937500451,
+      "probabilityBelow100k": 0.0004540728108289775,
+      "probabilityAtMost100k": 0.0008812709811499009,
+      "probabilityMillionOrMore": 0.009959977514344832,
+      "perSpinOrdinaryJackpot": 0.0007625000000000002,
+      "perSpinExceptionalJackpot": 6.250000000000002e-06,
+      "finalAnyOrdinaryJackpot": 0.0038066903690326948,
+      "finalAnyExceptionalJackpot": 3.124960937739285e-05,
+      "perSpinDistribution": [
+        {
+          "payout": 0,
+          "probability": 0.00010000000000000003
+        },
+        {
+          "payout": 10000,
+          "probability": 0.0017250000000000008
+        },
+        {
+          "payout": 15000,
+          "probability": 0.08887500000000004
+        },
+        {
+          "payout": 20000,
+          "probability": 0.01110000000000001
+        },
+        {
+          "payout": 25000,
+          "probability": 0.18600000000000017
+        },
+        {
+          "payout": 30000,
+          "probability": 0.11475000000000006
+        },
+        {
+          "payout": 50000,
+          "probability": 0.30782499999999996
+        },
+        {
+          "payout": 60000,
+          "probability": 0.014062500000000007
+        },
+        {
+          "payout": 90000,
+          "probability": 0.10639999999999988
+        },
+        {
+          "payout": 100000,
+          "probability": 0.04346249999999987
+        },
+        {
+          "payout": 125000,
+          "probability": 0.021599999999999994
+        },
+        {
+          "payout": 155000,
+          "probability": 0.03153750000000001
+        },
+        {
+          "payout": 180000,
+          "probability": 0.012700000000000003
+        },
+        {
+          "payout": 190000,
+          "probability": 0.031043750000000016
+        },
+        {
+          "payout": 250000,
+          "probability": 0.001575000000000001
+        },
+        {
+          "payout": 310000,
+          "probability": 0.003937500000000005
+        },
+        {
+          "payout": 335000,
+          "probability": 0.014150000000000008
+        },
+        {
+          "payout": 380000,
+          "probability": 0.001575000000000001
+        },
+        {
+          "payout": 475000,
+          "probability": 0.001593750000000001
+        },
+        {
+          "payout": 605000,
+          "probability": 0.0029750000000000024
+        },
+        {
+          "payout": 670000,
+          "probability": 0.00065
+        },
+        {
+          "payout": 730000,
+          "probability": 0.001593750000000001
+        },
+        {
+          "payout": 1000000,
+          "probability": 0.0005875
+        },
+        {
+          "payout": 1210000,
+          "probability": 0.00017499999999999994
+        },
+        {
+          "payout": 5000000,
+          "probability": 6.250000000000002e-06
+        }
+      ]
+    },
+    {
+      "model": "by_count",
+      "table": {
+        "lemon": [
+          0,
+          5000,
+          30000,
+          100000,
+          460000
+        ],
+        "orange": [
+          0,
+          5000,
+          45000,
+          100000,
+          560000
+        ],
+        "cherry": [
+          0,
+          10000,
+          55000,
+          105000,
+          660000
+        ],
+        "bell": [
+          0,
+          10000,
+          70000,
+          110000,
+          755000
+        ],
+        "diamond": [
+          0,
+          10000,
+          85000,
+          110000,
+          1000000
+        ],
+        "seven": [
+          0,
+          10000,
+          100000,
+          115000,
+          1000000
+        ]
+      },
+      "objective": 0.0004210634677826115,
+      "quantiles": {
+        "0.01": 120000,
+        "0.05": 165000,
+        "0.1": 195000,
+        "0.25": 245000,
+        "0.5": 305000,
+        "0.75": 385000,
+        "0.9": 500000,
+        "0.95": 720000,
+        "0.99": 1000000,
+        "0.999": 1365000
+      },
+      "mean": 342751.71875004953,
+      "probabilityBelow100k": 0.0032597944038521708,
+      "probabilityAtMost100k": 0.004247547562351926,
+      "probabilityMillionOrMore": 0.010007518200460684,
+      "perSpinOrdinaryJackpot": 0.0005875000000000001,
+      "perSpinExceptionalJackpot": 6.250000000000002e-06,
+      "finalAnyOrdinaryJackpot": 0.002934050464697191,
+      "finalAnyExceptionalJackpot": 3.124960937739285e-05,
+      "perSpinDistribution": [
+        {
+          "payout": 0,
+          "probability": 0.00010000000000000003
+        },
+        {
+          "payout": 10000,
+          "probability": 0.14407499999999995
+        },
+        {
+          "payout": 20000,
+          "probability": 0.0804749999999997
+        },
+        {
+          "payout": 30000,
+          "probability": 0.12187499999999994
+        },
+        {
+          "payout": 45000,
+          "probability": 0.10380000000000007
+        },
+        {
+          "payout": 55000,
+          "probability": 0.08021249999999999
+        },
+        {
+          "payout": 60000,
+          "probability": 0.02568750000000002
+        },
+        {
+          "payout": 70000,
+          "probability": 0.0954
+        },
+        {
+          "payout": 85000,
+          "probability": 0.06315000000000005
+        },
+        {
+          "payout": 90000,
+          "probability": 0.02070000000000001
+        },
+        {
+          "payout": 100000,
+          "probability": 0.13348749999999926
+        },
+        {
+          "payout": 105000,
+          "probability": 0.022275000000000003
+        },
+        {
+          "payout": 110000,
+          "probability": 0.047937499999999966
+        },
+        {
+          "payout": 115000,
+          "probability": 0.0029750000000000024
+        },
+        {
+          "payout": 140000,
+          "probability": 0.016087500000000025
+        },
+        {
+          "payout": 170000,
+          "probability": 0.009600000000000008
+        },
+        {
+          "payout": 200000,
+          "probability": 0.012412499999999996
+        },
+        {
+          "payout": 210000,
+          "probability": 0.001575000000000001
+        },
+        {
+          "payout": 220000,
+          "probability": 0.0022250000000000004
+        },
+        {
+          "payout": 230000,
+          "probability": 0.00017499999999999994
+        },
+        {
+          "payout": 460000,
+          "probability": 0.00809375
+        },
+        {
+          "payout": 560000,
+          "probability": 0.0038999999999999994
+        },
+        {
+          "payout": 660000,
+          "probability": 0.001593750000000001
+        },
+        {
+          "payout": 755000,
+          "probability": 0.001593750000000001
+        },
+        {
+          "payout": 1000000,
+          "probability": 0.0005875
+        },
+        {
+          "payout": 5000000,
+          "probability": 6.250000000000002e-06
+        }
+      ]
+    },
+    {
+      "model": "refined",
+      "table": {
+        "lemon": [
+          0,
+          5000,
+          25000,
+          100000,
+          455000
+        ],
+        "orange": [
+          0,
+          5000,
+          25000,
+          100000,
+          575000
+        ],
+        "cherry": [
+          0,
+          10000,
+          75000,
+          100000,
+          675000
+        ],
+        "bell": [
+          0,
+          10000,
+          75000,
+          120000,
+          740000
+        ],
+        "diamond": [
+          0,
+          15000,
+          75000,
+          120000,
+          1000000
+        ],
+        "seven": [
+          0,
+          25000,
+          95000,
+          120000,
+          1000000
+        ]
+      },
+      "objective": 0.0002258380741122181,
+      "quantiles": {
+        "0.01": 120000,
+        "0.05": 165000,
+        "0.1": 190000,
+        "0.25": 245000,
+        "0.5": 305000,
+        "0.75": 390000,
+        "0.9": 500000,
+        "0.95": 725000,
+        "0.99": 1000000,
+        "0.999": 1370000
+      },
+      "mean": 344203.43750005646,
+      "probabilityBelow100k": 0.0015685237610299468,
+      "probabilityAtMost100k": 0.0028942952266128195,
+      "probabilityMillionOrMore": 0.01001198455955693,
+      "perSpinOrdinaryJackpot": 0.0005875000000000001,
+      "perSpinExceptionalJackpot": 6.250000000000002e-06,
+      "finalAnyOrdinaryJackpot": 0.002934050464697191,
+      "finalAnyExceptionalJackpot": 3.124960937739285e-05,
+      "perSpinDistribution": [
+        {
+          "payout": 0,
+          "probability": 0.00010000000000000003
+        },
+        {
+          "payout": 10000,
+          "probability": 0.02872500000000001
+        },
+        {
+          "payout": 15000,
+          "probability": 0.060300000000000006
+        },
+        {
+          "payout": 20000,
+          "probability": 0.035024999999999966
+        },
+        {
+          "payout": 25000,
+          "probability": 0.2807249999999998
+        },
+        {
+          "payout": 30000,
+          "probability": 0.027200000000000044
+        },
+        {
+          "payout": 50000,
+          "probability": 0.0646374999999998
+        },
+        {
+          "payout": 75000,
+          "probability": 0.2387624999999994
+        },
+        {
+          "payout": 95000,
+          "probability": 0.027787499999999986
+        },
+        {
+          "payout": 100000,
+          "probability": 0.12797499999999984
+        },
+        {
+          "payout": 120000,
+          "probability": 0.03617499999999998
+        },
+        {
+          "payout": 150000,
+          "probability": 0.04042500000000001
+        },
+        {
+          "payout": 190000,
+          "probability": 0.003937500000000005
+        },
+        {
+          "payout": 200000,
+          "probability": 0.01005
+        },
+        {
+          "payout": 240000,
+          "probability": 0.0024000000000000002
+        },
+        {
+          "payout": 455000,
+          "probability": 0.00809375
+        },
+        {
+          "payout": 575000,
+          "probability": 0.0038999999999999994
+        },
+        {
+          "payout": 675000,
+          "probability": 0.001593750000000001
+        },
+        {
+          "payout": 740000,
+          "probability": 0.001593750000000001
+        },
+        {
+          "payout": 1000000,
+          "probability": 0.0005875
+        },
+        {
+          "payout": 5000000,
+          "probability": 6.250000000000002e-06
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "model": "refined",
+    "seed": 20261029,
+    "samples": 1000000,
+    "paidSpins": 5000000,
+    "quantiles": {
+      "0.01": 120000,
+      "0.05": 165000,
+      "0.1": 190000,
+      "0.25": 245000,
+      "0.5": 305000,
+      "0.75": 385000,
+      "0.9": 500000,
+      "0.95": 725000,
+      "0.99": 1000000,
+      "0.999": 1375000
+    },
+    "millionOrMore": 0.01001,
+    "ordinarySpinHits": 2859,
+    "exceptionalSpinHits": 39,
+    "maximumCdfError": 0.0008024434985313134,
+    "tolerance": 0.0026933861344527097,
+    "perSpinDomainDistributionsVerified": 5
+  }
+}
