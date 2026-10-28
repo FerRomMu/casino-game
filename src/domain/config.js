@@ -10,6 +10,7 @@ export function validateConfig(config, decks) {
   assert(config.grid.initial.reduce((sum, tile) => sum + tile.count, 0) === config.grid.rows * config.grid.columns, 'GRID_SIZE');
   assert(config.progression.choiceAt > 0 && config.progression.forceAt > config.progression.choiceAt, 'PROGRESSION');
   assert(config.final.minSpins > 0 && config.final.maxSpins >= config.final.minSpins, 'FINAL_SPINS');
+  assert(config.final.autoFinishWhenComplete === undefined || typeof config.final.autoFinishWhenComplete === 'boolean', 'FINAL_AUTO_FINISH');
   const inventory = {};
   for (const entry of [...config.grid.initial, ...config.grid.reserves, ...config.grid.replenishments]) {
     assert(Number.isInteger(entry.count) && entry.count > 0, 'TILE_COUNT');

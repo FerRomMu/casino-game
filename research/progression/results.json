@@ -12,6 +12,7 @@
     "seed": 20261028,
     "gamesPerScenario": 2000,
     "maxTurns": 1000,
+    "autoFinishWhenComplete": false,
     "target": {
       "minimum": 0.7,
       "maximum": 0.9

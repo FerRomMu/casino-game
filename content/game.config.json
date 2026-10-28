@@ -236,6 +236,7 @@
     "forceAt": 4
   },
   "final": {
+    "autoFinishWhenComplete": true,
     "minSpins": 3,
     "maxSpins": 5
   },

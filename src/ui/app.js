@@ -215,6 +215,12 @@ try {
     local.presentation = "wheel";
     local.wheelSpinning = true;
     send({ type: "SPIN_WHEEL" });
+    if (state.phase === "finale" && !state.category) {
+      local.presentation = null;
+      local.wheelSpinning = false;
+      render();
+      return;
+    }
     announce("ui.spinning");
     const center = ((state.category.start + state.category.end) / 2) * 360;
     const next =
@@ -245,11 +251,6 @@ try {
       play("fire");
       await wait("fire");
       send({ type: "END_PROGRESSION" });
-    } else if (state.phase === "finale") {
-      play("win");
-      await wait("finalIntro");
-      send({ type: "START_FINAL" });
-      announce("ui.finalReady");
     }
   }
 
@@ -262,7 +263,7 @@ try {
       tiles.forEach((tile) => tile.classList.remove("lit"));
       if (active.length)
         active[
-          Math.floor((now - start) / config.ui.gridLightStep) % active.length
+          Math.floor(Math.max(0, now - start) / config.ui.gridLightStep) % active.length
         ].classList.add("lit");
       raf = requestAnimationFrame(frame);
     };
@@ -380,6 +381,12 @@ try {
     local.slotSpinning = true;
     local.prizeVisible = false;
     send({ type: "SHOW_PREVIEW" });
+    if (state.phase === "finale") {
+      local.slotSpinning = false;
+      local.collected = [];
+      render();
+      return;
+    }
     await revealReels("previewSpin");
     if (state.newMaximum) {
       play("win");
@@ -548,6 +555,12 @@ try {
         case "restart":
           resetGame();
           break;
+      }
+      if (state.phase === "finale") {
+        play("win");
+        await wait("finalIntro");
+        send({ type: "START_FINAL" });
+        announce("ui.finalReady");
       }
     } catch (error) {
       console.error(error);

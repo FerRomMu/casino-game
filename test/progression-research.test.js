@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createGame, transition} from '../src/domain/game.js';
+import {createGame, transition, shouldFinishOnCompletion} from '../src/domain/game.js';
 import {seededRandom, wheelSectors} from '../src/domain/random.js';
 import {categoriesFor, filled, resolveCard, runGame} from '../research/progression/engine.mjs';
 
@@ -36,7 +36,10 @@ test('research baseline agrees with production transitions, excluding unpaid pre
           events.push({type:'reward', reels:state.reels, grid:state.grid, spins:state.spins});
           fullInWheel1 ||= state.wheel === config.progression.initialWheel && filled(state.reels, config) === 80;
           break;
-        case 'machine':state = {...state, phase:'wheel', card:null, extraction:null}; break;
+        case 'machine':
+          if (shouldFinishOnCompletion(state, config)) send({type:'SHOW_PREVIEW'});
+          else state = {...state, phase:'wheel', card:null, extraction:null};
+          break;
         case 'progression':send({type:'END_PROGRESSION'}); break;
         case 'decision':send({type:'CHOOSE_PROGRESSION', continue:choice}); break;
         case 'finale':send({type:'START_FINAL'}); break;
@@ -46,7 +49,7 @@ test('research baseline agrees with production transitions, excluding unpaid pre
       }
       if (state.wheel !== oldWheel) {entry = filled(state.reels, config); firstTurns = state.turn;}
     }
-    const actual = runGame(config, decks, experiment, model, profile, choice, seed, true);
+    const actual = runGame(config, decks, {...experiment, autoFinishWhenComplete:config.final.autoFinishWhenComplete}, model, profile, choice, seed, true);
     assert.deepEqual(actual.events, events);
     assert.deepEqual(actual.reels, state.reels);
     assert.deepEqual(actual.grid, state.grid);

@@ -1,6 +1,7 @@
 import {createGrid, executeGrid} from '../../src/domain/grid.js';
 import {createReels, insertTokens, spinSlots} from '../../src/domain/slots.js';
 import {selectCategory, indexOfRandom, seededRandom} from '../../src/domain/random.js';
+import {shouldFinishOnCompletion} from '../../src/domain/game.js';
 
 export const filled = (reels, config) => reels.flat().filter(s => s !== config.slots.stone).length;
 
@@ -37,6 +38,9 @@ export function resolveCard(card, profile, rng) {
 // grid, insertion, weighted selection and payment functions remain authoritative.
 // A trace equivalence test compares the unmodified policy with transition().
 export function runGame(config, decks, experiment, model, profile, continueAtChoice, seed, trace = false) {
+  if (experiment.autoFinishWhenComplete !== undefined) config = {
+    ...config, final:{...config.final, autoFinishWhenComplete:experiment.autoFinishWhenComplete},
+  };
   const rng = seededRandom(seed), capacity = config.slots.reels * config.slots.positions;
   let grid = createGrid(config.grid, rng), reels = createReels(config.slots);
   let wheel = config.progression.initialWheel, appearances = 0, spins = 0;
@@ -52,7 +56,17 @@ export function runGame(config, decks, experiment, model, profile, continueAtCho
   const byCategory = Object.fromEntries(Object.values(decks).flat().map(card => [card.category, []]));
   for (const cards of Object.values(decks)) for (const card of cards) byCategory[card.category].push(card);
   let deferredUnits = 0;
+  const complete = () => shouldFinishOnCompletion({wheel, reels, spins}, config);
+  const finish = (reason) => {
+    const count = Math.max(config.final.minSpins, Math.min(config.final.maxSpins, spins));
+    const outcomes = Array.from({length:count}, () => spinSlots(reels, config.slots, rng));
+    return {entry, effectiveEntry:entry + deferredUnits, deferredUnits, forced, fullInWheel1,
+      wheel1Turns, wheel2Turns, turns:turn, finalFill:filled(reels, config), finalSpins:count,
+      total:outcomes.reduce((sum, s) => sum + s.payout, 0), timeout:false, choiceOffered, continued,
+      finishReason:reason, ...(trace ? {events, reels, grid, outcomes} : {})};
+  };
   while (turn < experiment.maxTurns) {
+    if (complete()) return finish('complete');
     const first = wheel === config.progression.initialWheel;
     const fraction = filled(reels, config) / capacity;
     const categories = first ? categoriesFor(config, model, {fraction, appearances, misses, eligibleMisses}) : config.wheels[wheel].categories;
@@ -70,13 +84,7 @@ export function runGame(config, decks, experiment, model, profile, continueAtCho
       continue;
     }
     if (category.behavior === 'finale') {
-      // Overflow is credited at entry into wheel_2, before its first spin (below).
-      const count = Math.max(config.final.minSpins, Math.min(config.final.maxSpins, spins));
-      const outcomes = Array.from({length:count}, () => spinSlots(reels, config.slots, rng));
-      return {entry, effectiveEntry:entry + deferredUnits, deferredUnits, forced, fullInWheel1,
-        wheel1Turns, wheel2Turns, turns:turn, finalFill:filled(reels, config), finalSpins:count,
-        total:outcomes.reduce((sum, s) => sum + s.payout, 0), timeout:false, choiceOffered, continued,
-        ...(trace ? {events, reels, grid, outcomes} : {})};
+      return finish('category');
     }
     if (first) {
       misses++;
@@ -122,6 +130,7 @@ export function runGame(config, decks, experiment, model, profile, continueAtCho
       }
     }
   }
+  if (complete()) return finish('complete');
   return {entry, effectiveEntry:entry === null ? null : entry + deferredUnits, deferredUnits,
     forced, fullInWheel1, wheel1Turns:entry === null ? turn : wheel1Turns, wheel2Turns, turns:turn,
     finalFill:filled(reels, config), finalSpins:0, total:null, timeout:true, choiceOffered, continued,

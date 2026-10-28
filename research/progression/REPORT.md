@@ -1,5 +1,7 @@
 # Comparación de progresión entre ruletas
 
+> Informe histórico: usa `autoFinishWhenComplete: false`. El cierre automático al completar máquina y tiradas se estudia por separado en [COMPLETION.md](COMPLETION.md).
+
 **112.000 partidas: 7 modelos × 4 perfiles × 2 decisiones × 2.000 semillas.**
 
 Conclusión: el híbrido anticipado ofrece el mejor equilibrio de los modelos ensayados entre control del llenado, azar y conservación de la elección. El pase fijo al 80% controla mejor el resultado, pero elimina las llamas y la decisión. No se cambiaron las reglas de la demo.

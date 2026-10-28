@@ -984,3 +984,69 @@ for (const [width, height] of [
     ).toEqual(payouts);
   });
 }
+
+for (const completion of ['symbol', 'spin', 'advance']) {
+  test(`complete machine automatically enters final after ${completion}`, async ({page}) => {
+    const source = await readFile(new URL('../src/domain/game.js', import.meta.url), 'utf8');
+    await page.route('**/src/domain/game.js', route => route.fulfill({
+      contentType:'text/javascript',
+      body:source.replace('export function createGame(', 'function fixtureBaseGame(') + `
+        export function createGame(config,rng,participantId) {
+          const state=fixtureBaseGame(config,rng,participantId);
+          state.reels=Array.from({length:config.slots.reels},()=>Object.entries(config.slots.target).flatMap(([id,count])=>Array(count).fill(id)));
+          state.spins=config.final.maxSpins;
+          if (${JSON.stringify(completion)} !== 'advance') {
+            state.wheel=config.progression.nextWheel;
+            let tile;
+            if (${JSON.stringify(completion)} === 'symbol') {
+              tile={kind:'symbol',symbol:state.reels[0][0],units:1};
+              state.reels[0][0]=config.slots.stone;
+            } else {
+              state.spins--;
+              const effect=Object.keys(config.grid.effects).find(id=>config.grid.effects[id].spins===1);
+              tile={kind:'effect',effect};
+            }
+            state.grid={cells:[tile,...Array(config.grid.rows*config.grid.columns-1).fill(null)],pool:[],reserves:[]};
+          }
+          return state;
+        }`,
+    }));
+    await prepare(page, {force:{wheel_1:'cat_7_progression', wheel_2:'w2_cat_1'}});
+    if (completion === 'advance') {
+      for (let i=0;i<original.progression.choiceAt;i++) {
+        await click(page,'spin');
+        await ready(page,i===original.progression.choiceAt-1?'decision':'wheel');
+      }
+      await click(page,'advance');
+    } else {
+      await offer(page);
+      await click(page,'accept');
+      await ready(page,'challenge');
+      await click(page,'success');
+    }
+    await ready(page,'final_ready');
+    await expect(page.locator('[data-filled]')).toContainText('80');
+    await expect(page.locator('[data-pot]')).toHaveAttribute('data-value', String(original.final.maxSpins * original.slots.payout.exceptional.value));
+    for (let i=0;i<original.final.maxSpins;i++) {
+      await click(page,'final-spin');
+      await ready(page,i===original.final.maxSpins-1?'finished':'final_ready');
+    }
+    await expect(page.locator('.load-error')).toHaveCount(0);
+    await noOverflow(page);
+  });
+}
+
+test('grid lights tolerate a frame timestamp preceding animation start', async ({page}) => {
+  await page.addInitScript(() => {
+    const request = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = callback => request(timestamp => callback(timestamp - 100));
+  });
+  await prepare(page, {force:{wheel_1:'cat_1'}, reduced:false, timings:{grid:400}});
+  await offer(page);
+  await click(page,'accept');
+  await ready(page,'challenge');
+  await click(page,'success');
+  await page.waitForSelector('#stage[data-phase="wheel"][data-busy="false"]');
+  await expect(page.locator('.load-error')).toHaveCount(0);
+  expect(Number((await page.locator('[data-filled]').innerText()).split('/')[0])).toBeGreaterThan(0);
+});

@@ -1,0 +1,222 @@
+{
+  "seed": 20261028,
+  "games": 16000,
+  "profile": {
+    "id": "high",
+    "accept": 1,
+    "success": 0.95,
+    "numeric": "binomial"
+  },
+  "maxTurns": 1000,
+  "note": "Paired identical seeds. Current is the deployed first-wheel policy; bounded_fast remains experimental. No UI previews. Maximum is observed, not a hard turn limit.",
+  "scenarios": [
+    {
+      "model": "current",
+      "continueAtChoice": false,
+      "autoFinishWhenComplete": false,
+      "samples": 2000,
+      "firstWheel": {
+        "median": 19,
+        "q75": 27,
+        "q90": 36,
+        "max": 92
+      },
+      "secondWheel": {
+        "median": 7,
+        "q75": 14,
+        "q90": 22,
+        "max": 84
+      },
+      "totalTurns": {
+        "median": 29,
+        "q75": 39,
+        "q90": 50,
+        "max": 108
+      },
+      "completionClosures": 0,
+      "timeouts": 0
+    },
+    {
+      "model": "current",
+      "continueAtChoice": false,
+      "autoFinishWhenComplete": true,
+      "samples": 2000,
+      "firstWheel": {
+        "median": 19,
+        "q75": 27,
+        "q90": 36,
+        "max": 92
+      },
+      "secondWheel": {
+        "median": 1,
+        "q75": 4,
+        "q90": 8,
+        "max": 17
+      },
+      "totalTurns": {
+        "median": 21,
+        "q75": 27,
+        "q90": 36,
+        "max": 92
+      },
+      "completionClosures": 1491,
+      "timeouts": 0
+    },
+    {
+      "model": "current",
+      "continueAtChoice": true,
+      "autoFinishWhenComplete": false,
+      "samples": 2000,
+      "firstWheel": {
+        "median": 26,
+        "q75": 35,
+        "q90": 46,
+        "max": 112
+      },
+      "secondWheel": {
+        "median": 7,
+        "q75": 14,
+        "q90": 23,
+        "max": 79
+      },
+      "totalTurns": {
+        "median": 36,
+        "q75": 48,
+        "q90": 59,
+        "max": 120
+      },
+      "completionClosures": 0,
+      "timeouts": 0
+    },
+    {
+      "model": "current",
+      "continueAtChoice": true,
+      "autoFinishWhenComplete": true,
+      "samples": 2000,
+      "firstWheel": {
+        "median": 26,
+        "q75": 35,
+        "q90": 46,
+        "max": 112
+      },
+      "secondWheel": {
+        "median": 0,
+        "q75": 2,
+        "q90": 5,
+        "max": 16
+      },
+      "totalTurns": {
+        "median": 26,
+        "q75": 35,
+        "q90": 46,
+        "max": 112
+      },
+      "completionClosures": 1723,
+      "timeouts": 0
+    },
+    {
+      "model": "bounded_fast",
+      "continueAtChoice": false,
+      "autoFinishWhenComplete": false,
+      "samples": 2000,
+      "firstWheel": {
+        "median": 16,
+        "q75": 17,
+        "q90": 18,
+        "max": 20
+      },
+      "secondWheel": {
+        "median": 7,
+        "q75": 14,
+        "q90": 22,
+        "max": 79
+      },
+      "totalTurns": {
+        "median": 23,
+        "q75": 30,
+        "q90": 38,
+        "max": 91
+      },
+      "completionClosures": 0,
+      "timeouts": 0
+    },
+    {
+      "model": "bounded_fast",
+      "continueAtChoice": false,
+      "autoFinishWhenComplete": true,
+      "samples": 2000,
+      "firstWheel": {
+        "median": 16,
+        "q75": 17,
+        "q90": 18,
+        "max": 20
+      },
+      "secondWheel": {
+        "median": 4,
+        "q75": 5,
+        "q90": 5,
+        "max": 8
+      },
+      "totalTurns": {
+        "median": 20,
+        "q75": 20,
+        "q90": 21,
+        "max": 25
+      },
+      "completionClosures": 1295,
+      "timeouts": 0
+    },
+    {
+      "model": "bounded_fast",
+      "continueAtChoice": true,
+      "autoFinishWhenComplete": false,
+      "samples": 2000,
+      "firstWheel": {
+        "median": 17,
+        "q75": 18,
+        "q90": 19,
+        "max": 22
+      },
+      "secondWheel": {
+        "median": 7,
+        "q75": 14,
+        "q90": 23,
+        "max": 76
+      },
+      "totalTurns": {
+        "median": 24,
+        "q75": 31,
+        "q90": 40,
+        "max": 95
+      },
+      "completionClosures": 0,
+      "timeouts": 0
+    },
+    {
+      "model": "bounded_fast",
+      "continueAtChoice": true,
+      "autoFinishWhenComplete": true,
+      "samples": 2000,
+      "firstWheel": {
+        "median": 17,
+        "q75": 18,
+        "q90": 19,
+        "max": 22
+      },
+      "secondWheel": {
+        "median": 3,
+        "q75": 4,
+        "q90": 5,
+        "max": 7
+      },
+      "totalTurns": {
+        "median": 21,
+        "q75": 21,
+        "q90": 22,
+        "max": 25
+      },
+      "completionClosures": 1360,
+      "timeouts": 0
+    }
+  ]
+}

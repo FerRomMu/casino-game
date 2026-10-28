@@ -2,6 +2,16 @@ import { selectCategory, indexOfRandom } from './random.js';
 import { createGrid, executeGrid } from './grid.js';
 import { createReels, insertTokens, analyzeSlots, spinSlots } from './slots.js';
 
+// Completion closes only the advanced wheel, and requires earned spins: the
+// minimum final-spin guarantee must not count as progression already collected.
+export function shouldFinishOnCompletion(state, config) {
+  return config.final.autoFinishWhenComplete === true &&
+    state.wheel === config.progression.nextWheel &&
+    state.spins >= config.final.maxSpins &&
+    state.reels.length === config.slots.reels &&
+    state.reels.every(reel => reel.length === config.slots.positions && !reel.includes(config.slots.stone));
+}
+
 export function createGame(config, rng, participantId = 'participant_1') {
   return {
     participantId, phase: 'wheel', wheel: config.progression.initialWheel,
@@ -19,10 +29,19 @@ export function transition(state, action, context) {
   const requirePhase = (...phases) => {
     if (!phases.includes(s.phase)) throw new Error(`INVALID_ACTION:${s.phase}:${action.type}`);
   };
-  const returnToWheel = () => { s.phase = 'wheel'; s.card = null; s.extraction = null; };
+  const enterFinal = () => {
+    s.spins = Math.max(config.final.minSpins, Math.min(config.final.maxSpins, s.spins));
+    s.preview = analyzeSlots(s.reels, config.slots);
+    s.phase = 'finale';
+  };
+  const returnToWheel = () => {
+    s.phase = 'wheel'; s.card = null; s.extraction = null;
+    if (shouldFinishOnCompletion(s, config)) enterFinal();
+  };
   switch (action.type) {
     case 'SPIN_WHEEL': {
       requirePhase('wheel');
+      if (shouldFinishOnCompletion(s, config)) { s.category = null; enterFinal(); break; }
       s.category = selectCategory(config.wheels[s.wheel].categories, rng);
       s.turn++;
       if (s.category.behavior === 'progression') {
@@ -30,9 +49,7 @@ export function transition(state, action, context) {
         s.progression = Math.min(config.progression.choiceAt, s.appearances);
         s.phase = 'progression';
       } else if (s.category.behavior === 'finale') {
-        s.spins = Math.max(config.final.minSpins, Math.min(config.final.maxSpins, s.spins));
-        s.preview = analyzeSlots(s.reels, config.slots);
-        s.phase = 'finale';
+        enterFinal();
       } else s.phase = 'category';
       break;
     }
@@ -82,6 +99,7 @@ export function transition(state, action, context) {
     }
     case 'SHOW_PREVIEW':
       requirePhase('machine');
+      if (shouldFinishOnCompletion(s, config)) { enterFinal(); break; }
       s.preview = analyzeSlots(s.reels, config.slots);
       s.newMaximum = s.preview.maximum.payout > s.maximumSeen;
       s.maximumSeen = Math.max(s.maximumSeen, s.preview.maximum.payout);

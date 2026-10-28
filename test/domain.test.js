@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { seededRandom, selectCategory, wheelSectors } from '../src/domain/random.js';
 import { validateConfig } from '../src/domain/config.js';
-import { createGame, transition } from '../src/domain/game.js';
+import { createGame, transition, shouldFinishOnCompletion } from '../src/domain/game.js';
 import { createGrid, executeGrid } from '../src/domain/grid.js';
 import { createReels, insertTokens, evaluateLine, analyzeSlots } from '../src/domain/slots.js';
 import { translator } from '../src/ui/content.js';
@@ -343,4 +343,84 @@ test('every displayed prize is reachable and every payable amount is represented
     assert.deepEqual([...new Set(displayed)].sort((a,b)=>a-b),analysis.distribution.filter(o=>o.payout>0).map(o=>o.payout));
     assert.equal(table.maximum,analysis.maximum.payout);
   }
+});
+
+test('automatic finale requires both complete reels and earned maximum spins in the advanced wheel', () => {
+  const {state} = setup();
+  state.reels = Array.from({length:config.slots.reels}, () => Object.entries(config.slots.target).flatMap(([symbol, n]) => Array(n).fill(symbol)));
+  state.spins = config.final.maxSpins;
+  assert.equal(shouldFinishOnCompletion(state, config), false);
+  state.wheel = config.progression.nextWheel;
+  assert.equal(shouldFinishOnCompletion(state, config), true);
+  state.spins--;
+  assert.equal(shouldFinishOnCompletion(state, config), false);
+  state.spins++;
+  const symbol = state.reels[0][0];
+  state.reels[0][0] = config.slots.stone;
+  assert.equal(shouldFinishOnCompletion(state, config), false);
+  state.reels[0][0] = symbol;
+  const disabled = {...config, final:{...config.final, autoFinishWhenComplete:false}};
+  assert.equal(shouldFinishOnCompletion(state, disabled), false);
+  const alternate = {...config, final:{...config.final, minSpins:2, maxSpins:4}};
+  state.spins = 4;
+  assert.equal(shouldFinishOnCompletion(state, alternate), true);
+  state.spins = 3;
+  assert.equal(shouldFinishOnCompletion(state, alternate), false);
+});
+
+test('last symbol or last earned spin closes after installation without an extra wheel or preview spin', () => {
+  for (const last of ['symbol', 'spin']) {
+    const {state, context} = setup(42);
+    state.reels = Array.from({length:config.slots.reels}, () => Object.entries(config.slots.target).flatMap(([symbol, n]) => Array(n).fill(symbol)));
+    state.wheel = config.progression.nextWheel;
+    state.spins = config.final.maxSpins;
+    let tile;
+    if (last === 'symbol') {
+      tile = {kind:'symbol', symbol:state.reels[0][0], units:1};
+      state.reels[0][0] = config.slots.stone;
+    } else {
+      state.spins--;
+      const effect = Object.keys(config.grid.effects).find(id => config.grid.effects[id].spins === 1);
+      tile = {kind:'effect', effect};
+    }
+    state.grid = {cells:[tile, ...Array(config.grid.rows * config.grid.columns - 1).fill(null)], pool:[], reserves:[]};
+    state.points = 1; state.phase = 'reward'; state.turn = 7;
+    const before = structuredClone(state);
+    let s = transition(state, {type:'EXECUTE_GRID'}, context);
+    s = transition(s, {type:'INSERT_TOKENS'}, context);
+    assert.equal(s.phase, 'machine');
+    s = transition(s, {type:'SHOW_PREVIEW'}, {...context, rng:() => {throw Error('UNEXPECTED_RNG');}});
+    assert.equal(s.phase, 'finale');
+    assert.equal(s.spins, config.final.maxSpins);
+    assert.equal(s.turn, 7);
+    assert.equal(s.total, 0);
+    assert.equal(s.history.length, 0);
+    assert.equal(s.preview.maximum.payout, config.slots.payout.exceptional.value);
+    assert.deepEqual(state, before);
+    s = transition(s, {type:'START_FINAL'}, context);
+    for (let i = 0; i < config.final.maxSpins; i++) {
+      s = transition(s, {type:'SPIN_FINAL'}, context);
+      s = transition(s, {type:'END_FINAL_RESULT'}, context);
+    }
+    assert.equal(s.phase, 'finished');
+    assert.equal(s.history.length, config.final.maxSpins);
+  }
+});
+
+test('entering advanced wheel already complete starts final immediately via either progression path', () => {
+  const {state, context} = setup();
+  state.reels = Array.from({length:config.slots.reels}, () => Object.entries(config.slots.target).flatMap(([symbol, n]) => Array(n).fill(symbol)));
+  state.spins = config.final.maxSpins;
+  state.phase = 'decision'; state.appearances = config.progression.choiceAt;
+  assert.equal(transition(state, {type:'CHOOSE_PROGRESSION', continue:true}, context).phase, 'wheel');
+  const advanced = transition(state, {type:'CHOOSE_PROGRESSION', continue:false}, context);
+  assert.equal(advanced.wheel, config.progression.nextWheel);
+  assert.equal(advanced.phase, 'finale');
+  state.phase = 'progression'; state.appearances = config.progression.forceAt;
+  assert.equal(transition(state, {type:'END_PROGRESSION'}, context).phase, 'finale');
+  state.wheel = config.progression.nextWheel; state.phase = 'wheel';
+  const guarded = transition(state, {type:'SPIN_WHEEL'}, {...context, rng:() => {throw Error('UNEXPECTED_RNG');}});
+  assert.equal(guarded.phase, 'finale');
+  assert.equal(guarded.turn, state.turn);
+  assert.equal(guarded.category, null);
 });
