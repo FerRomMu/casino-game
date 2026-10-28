@@ -63,9 +63,7 @@ try {
   const actionControls = [
     "spin",
     "pick",
-    "accept",
     "reject",
-    "fail",
     "success",
     "numeric",
     "more",
@@ -518,24 +516,26 @@ try {
           break;
         case "pick":
           local.numeric = 0;
-          send({ type: "PICK_CARD" });
+          state = transition(state, { type: "PICK_CARD" }, context);
+          state = transition(state, { type: "ACCEPT" }, context);
+          render();
           play("pick");
           await wait("flip");
           break;
-        case "accept":
-          local.numeric = 0;
-          send({ type: "ACCEPT" });
+        case "reject": {
+          const numeric = state.card.resolution === "numeric";
+          const result = numeric
+            ? { type: "RESOLVE", result: 0 }
+            : { type: "RESOLVE", success: false };
+          const points = numeric
+            ? state.card.reward.byResult[0]
+            : state.card.reward.failure;
+          if (points === 0) await exitCard(result);
+          else await resolveChallenge(result);
           break;
-        case "reject":
-          await exitCard({ type: "REJECT" });
-          break;
+        }
         case "success":
           await resolveChallenge({ type: "RESOLVE", success: true });
-          break;
-        case "fail":
-          if (state.card.reward.failure === 0)
-            await exitCard({ type: "RESOLVE", success: false });
-          else await resolveChallenge({ type: "RESOLVE", success: false });
           break;
         case "numeric":
           if (state.card.reward.byResult[local.numeric] === 0)
@@ -596,12 +596,10 @@ try {
               ? "spin"
               : state.phase === "cards"
                 ? "pick"
-                : state.phase === "offer"
-                  ? "accept"
-                  : state.phase === "challenge"
-                    ? state.card.resolution === "numeric"
-                      ? "more"
-                      : "success"
+                : state.phase === "challenge"
+                  ? state.card.resolution === "numeric"
+                    ? "more"
+                    : "success"
                     : state.phase === "decision"
                       ? "advance"
                       : state.phase === "final_ready"

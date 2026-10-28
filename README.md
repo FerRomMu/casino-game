@@ -27,7 +27,7 @@ La partida se ejecuta en memoria. Cada carga obtiene una semilla nueva del naveg
 ## Qué se puede probar
 
 - Dos ruletas con sectores ponderados: el tamaño visual y la selección usan las mismas probabilidades normalizadas.
-- Selección de carta boca abajo, aceptación o rechazo sin penalización, retos binarios y resultados numéricos.
+- Selección de carta boca abajo que abre directamente el desafío, con una sola opción para pasar o indicar que no se completó, retos binarios y resultados numéricos.
 - Conversión automática de puntos en extracciones del tablero 7 × 7, incorporación de especiales y reemplazo de piedras en cuatro rodillos de veinte posiciones.
 - Tabla de premios encima de los rodillos, actualizada durante cada incorporación. Muestra sólo importes alcanzables por la composición actual, incluyendo Wild y multiplicador; las combinaciones imposibles quedan apagadas y el jackpot exige el símbolo excepcional en cada rodillo. En pantallas bajas se conserva la fila central que paga para mantener legibles la tabla y los controles.
 - Ruleta con sectores de colores, relieve dorado, luces animadas e iconos por categoría. Símbolos ilustrados en SVG, tipografías locales y máquina con rodillos profundos y columnas doradas.
@@ -73,7 +73,7 @@ El dominio expone la fase `wheel_transition` y la acción `ADVANCE_WHEEL`. La UI
 
 Las cartas usan `text_key` y `category`; ninguna regla depende del texto del desafío. `resolution: "binary"` utiliza `reward.success` / `reward.failure`. `resolution: "numeric"` utiliza `maximum` y `reward.byResult`: la posición del arreglo indica la cantidad cumplida, incluyendo cero. `reward.success` y `reward.failure` se muestran como referencia de los extremos.
 
-Los mazos se agotan sin repetir cartas; al agotarse una categoría, se habilita nuevamente su mazo. Rechazar no cambia puntos, fichas, tiradas ni progresión. La carta extraída queda registrada como usada.
+Los mazos se agotan sin repetir cartas; al agotarse una categoría, se habilita nuevamente su mazo. Pasar o indicar que no se completó aplica el resultado de fallo configurado para la carta. La carta extraída queda registrada como usada.
 
 Las claves ausentes se muestran como `MISSING:<key>` en desarrollo y como texto vacío en la distribución de producción.
 

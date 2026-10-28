@@ -56,11 +56,11 @@ async function click(page, action) {
     .first()
     .click();
 }
-async function offer(page) {
+async function drawChallenge(page) {
   await click(page, "spin");
   await ready(page, "cards");
   await click(page, "pick");
-  await ready(page, "offer");
+  await ready(page, "challenge");
 }
 async function noOverflow(page) {
   expect(
@@ -104,9 +104,7 @@ test("moving reel strips keep visible cells throughout a mobile spin", async ({
     timings: { previewSpin: 1800, reelStop: 100 },
     reduced: false,
   });
-  await offer(page);
-  await click(page, "accept");
-  await ready(page, "challenge");
+  await drawChallenge(page);
   await click(page, "more");
   await click(page, "more");
   expect(
@@ -196,7 +194,7 @@ test("double clicks resolve one spin; help keeps the spinning wheel attached", a
   await ready(page, "cards");
   await expect(page.locator("[data-turn]")).toHaveText("01");
   await click(page, "pick");
-  await ready(page, "offer");
+  await ready(page, "challenge");
   await click(page, "reject");
   await ready(page, "wheel");
   await expect(page.locator("[data-filled]")).toHaveText("0 / 80");
@@ -208,9 +206,7 @@ test("numeric controls keep keyboard focus, clamp results and complete the anima
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await prepare(page, { force: { wheel_1: "cat_6" } });
-  await offer(page);
-  await click(page, "accept");
-  await ready(page, "challenge");
+  await drawChallenge(page);
   await expect(page.locator('[data-action="less"]')).toBeDisabled();
   await click(page, "more");
   await expect(page.locator('[data-action="more"]')).toBeFocused();
@@ -248,23 +244,31 @@ test("numeric controls keep keyboard focus, clamp results and complete the anima
   await noOverflow(page);
 });
 
-test("rejection during an accepted challenge and zero reward return cleanly", async ({
+test("rejection handles an incomplete challenge without extra controls", async ({
   page,
 }) => {
   await prepare(page, { force: { wheel_1: "cat_1" } });
-  await offer(page);
-  await click(page, "accept");
-  await ready(page, "challenge");
+  await drawChallenge(page);
+  await expect(page.locator('[data-action="accept"], [data-action="fail"]')).toHaveCount(0);
+  await expect(page.locator('.challenge-card .actions button')).toHaveCount(2);
   await click(page, "reject");
   await ready(page, "wheel");
   await expect(page.locator("[data-filled]")).toHaveText("0 / 80");
-  await offer(page);
-  await click(page, "accept");
-  await ready(page, "challenge");
-  await click(page, "fail");
+  await drawChallenge(page);
+  await click(page, "reject");
   await ready(page, "wheel");
   await expect(page.locator("[data-filled]")).toHaveText("0 / 80");
   await expect(page.locator("[data-banked-spins]")).toHaveText("0");
+});
+
+test("rejection uses the configured incomplete reward", async ({ page }) => {
+  await prepare(page, { force: { wheel_1: "cat_2_quiz" } });
+  await drawChallenge(page);
+  await click(page, "reject");
+  await ready(page, "wheel");
+  const filled = Number((await page.locator("[data-filled]").innerText()).split("/")[0]);
+  const spins = Number(await page.locator("[data-banked-spins]").innerText());
+  expect(filled + spins).toBeGreaterThan(0);
 });
 
 test("third progression can continue; fourth changes wheels; final spins cannot be duplicated", async ({
@@ -362,7 +366,6 @@ test("a complete deterministic game runs with sound, cards, rewards and the fina
       await click(page, "spin");
       turns++;
     } else if (phase === "cards") await click(page, "pick");
-    else if (phase === "offer") await click(page, "accept");
     else if (phase === "challenge") {
       if (await page.locator("[data-numeric-result]").count()) {
         while (await page.locator('[data-action="more"]').isEnabled())
@@ -455,7 +458,6 @@ test("a complete deterministic game runs with sound, cards, rewards and the fina
     expect.arrayContaining([
       "wheel",
       "cards",
-      "offer",
       "challenge",
       "final_ready",
       "finished",
@@ -486,9 +488,9 @@ for (const width of [320, 390, 768, 1280]) {
           ),
         ),
       ).toBeGreaterThanOrEqual(20);
-    await offer(page);
+    await drawChallenge(page);
     await noOverflow(page);
-    await click(page, "accept");
+
     await ready(page, "challenge");
     await noOverflow(page);
     await click(page, "rules");
@@ -542,9 +544,9 @@ for (const [width, height] of [
     await page.setViewportSize({ width, height });
     await prepare(page, { force: { wheel_1: "cat_6" } });
     await contentFits(page);
-    await offer(page);
+    await drawChallenge(page);
     await contentFits(page);
-    await click(page, "accept");
+
     await ready(page, "challenge");
     await contentFits(page);
     await click(page, "more");
@@ -614,9 +616,7 @@ test("insertion lands on stones at actual positions and plays exactly one new-ma
     });
   });
   for (let turn = 0; turn < 2; turn++) {
-    await offer(page);
-    await click(page, "accept");
-    await ready(page, "challenge");
+    await drawChallenge(page);
     await click(page, "success");
     await page.waitForSelector('#stage[data-phase="wheel"][data-busy="false"]');
     await ready(page, "wheel");
@@ -727,9 +727,7 @@ test("blast animation collects the domain snapshot and high maximum uses a large
       attributeFilter: ["class"],
     });
   });
-  await offer(page);
-  await click(page, "accept");
-  await ready(page, "challenge");
+  await drawChallenge(page);
   await click(page, "success");
   await page.waitForSelector(".new-maximum.is-visible");
   const sizes = await page
@@ -881,9 +879,7 @@ test("pay table updates as symbols are installed and matches the domain before t
       subtree: true,
     });
   });
-  await offer(page);
-  await click(page, "accept");
-  await ready(page, "challenge");
+  await drawChallenge(page);
   await click(page, "success");
   await page.waitForSelector('#stage[data-phase="wheel"][data-busy="false"]');
   const tables = await page.evaluate(() => window.payTables);
@@ -1021,8 +1017,8 @@ for (const completion of ['symbol', 'spin', 'advance']) {
       }
       await click(page,'advance');
     } else {
-      await offer(page);
-      await click(page,'accept');
+      await drawChallenge(page);
+
       await ready(page,'challenge');
       await click(page,'success');
     }
@@ -1044,8 +1040,8 @@ test('grid lights tolerate a frame timestamp preceding animation start', async (
     window.requestAnimationFrame = callback => request(timestamp => callback(timestamp - 100));
   });
   await prepare(page, {force:{wheel_1:'cat_1'}, reduced:false, timings:{grid:400}});
-  await offer(page);
-  await click(page,'accept');
+  await drawChallenge(page);
+
   await ready(page,'challenge');
   await click(page,'success');
   await page.waitForSelector('#stage[data-phase="wheel"][data-busy="false"]');
@@ -1081,7 +1077,7 @@ test('adaptive wheel freezes its geometry while spinning and expands after a mis
   expect(Number(await flame.getAttribute('data-probability'))).toBeCloseTo(.18,10);
   await ready(page,'cards');
   await click(page,'pick');
-  await ready(page,'offer');
+  await ready(page,'challenge');
   await click(page,'reject');
   await ready(page,'wheel');
   expect(Number(await flame.getAttribute('data-probability'))).toBeCloseTo(.1825,10);
@@ -1104,7 +1100,7 @@ test('third flame remains visible and grows smoothly through seventy percent', a
   const before=Number(await flame.getAttribute('data-probability'));
   expect(before).toBeGreaterThan(0);
   await expect(page.locator('.progress-panel')).not.toContainText(strings['ui.progressLocked']);
-  await offer(page);await click(page,'accept');await ready(page,'challenge');await click(page,'success');
+  await drawChallenge(page);await click(page,'success');
   await page.waitForSelector('#stage[data-phase="wheel"][data-busy="false"]');
   await expect(page.locator('[data-filled]')).toHaveText('56 / 80');
   expect(Number(await flame.getAttribute('data-probability'))-before).toBeLessThan(.02);
@@ -1134,7 +1130,7 @@ test('ninety percent handoff precedes overflow insertion and automatic finale', 
         wheel:document.querySelector('.round-label strong').textContent});
     }).observe(document.querySelector('#app'),{subtree:true,childList:true});
   });
-  await offer(page);await click(page,'accept');await ready(page,'challenge');await click(page,'success');
+  await drawChallenge(page);await click(page,'success');
   await page.waitForSelector('#stage[data-phase="wheel_transition"]');
   await expect(page.locator('#stage')).toContainText(strings['ui.stageUnlocked']);
   await noOverflow(page);

@@ -1591,10 +1591,6 @@ summary {
 .text-button:hover {
   color: #ffe0a0;
 }
-.challenge-card > .text-button {
-  display: block;
-  margin: 12px auto -5px;
-}
 .numeric-control {
   text-align: center;
   margin-bottom: 27px;

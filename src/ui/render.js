@@ -91,12 +91,11 @@ export function createRenderer(config, t) {
   }
 
   function challengeScene(s, l) {
-    const active = s.phase === "challenge",
-      c = s.card,
+    const c = s.card,
       numeric = c.resolution === "numeric";
     const low = numeric ? c.reward.byResult[0] : c.reward.failure,
       high = numeric ? c.reward.byResult[c.maximum] : c.reward.success;
-    return `<section class="scene challenge-scene ${l.enter ? "scene-enter" : ""}"><div class="challenge-card ${l.cardLeaving ? "card-leaving" : ""}" style="--category:${e(s.category.color)}"><div class="card-topline"><span class="category-badge">${art(s.category.art)}${text(s.category.name_key)}</span><span class="challenge-mark">✦</span></div><span class="eyebrow">${text(active ? "ui.challengeActive" : "ui.challenge")}</span><h1>${text(c.text_key)}</h1><div class="reward-tags"><div>${art("coin")}<span>${text("ui.successReward")}<b>+${number(high)} <small>${text("ui.points")}</small></b></span></div><div>${art("coin")}<span>${text("ui.failureReward")}<b>+${number(low)} <small>${text("ui.points")}</small></b></span></div></div>${active && numeric ? `<div class="numeric-control"><p>${text("ui.numericHint")}</p><div class="numeric-stepper"><button type="button" data-action="less" aria-label="${text("ui.less")}" ${l.numeric <= 0 ? "disabled" : ""}>−</button><output aria-live="polite" data-numeric-result>${l.numeric}<span> / ${c.maximum}</span></output><button type="button" data-action="more" aria-label="${text("ui.more")}" ${l.numeric >= c.maximum ? "disabled" : ""}>+</button></div><span class="numeric-reward">+${number(c.reward.byResult[l.numeric])} ${text("ui.points")}</span></div>` : ""}<div class="actions">${!active ? button("reject", "ui.reject", "secondary") + button("accept", "ui.accept", "primary green-button") : numeric ? button("reject", "ui.cancel", "secondary") + button("numeric", "ui.result", "primary green-button") : button("fail", "ui.fail", "secondary") + button("success", "ui.complete", "primary green-button")}</div>${active && !numeric ? button("reject", "ui.cancel", "text-button") : ""}</div></section>`;
+    return `<section class="scene challenge-scene ${l.enter ? "scene-enter" : ""}"><div class="challenge-card ${l.cardLeaving ? "card-leaving" : ""}" style="--category:${e(s.category.color)}"><div class="card-topline"><span class="category-badge">${art(s.category.art)}${text(s.category.name_key)}</span><span class="challenge-mark">✦</span></div><span class="eyebrow">${text("ui.challengeActive")}</span><h1>${text(c.text_key)}</h1><div class="reward-tags"><div>${art("coin")}<span>${text("ui.successReward")}<b>+${number(high)} <small>${text("ui.points")}</small></b></span></div><div>${art("coin")}<span>${text("ui.failureReward")}<b>+${number(low)} <small>${text("ui.points")}</small></b></span></div></div>${numeric ? `<div class="numeric-control"><p>${text("ui.numericHint")}</p><div class="numeric-stepper"><button type="button" data-action="less" aria-label="${text("ui.less")}" ${l.numeric <= 0 ? "disabled" : ""}>−</button><output aria-live="polite" data-numeric-result>${l.numeric}<span> / ${c.maximum}</span></output><button type="button" data-action="more" aria-label="${text("ui.more")}" ${l.numeric >= c.maximum ? "disabled" : ""}>+</button></div><span class="numeric-reward">+${number(c.reward.byResult[l.numeric])} ${text("ui.points")}</span></div>` : ""}<div class="actions">${button("reject", "ui.reject", "secondary")}${numeric ? button("numeric", "ui.result", "primary green-button") : button("success", "ui.complete", "primary green-button")}</div></div></section>`;
   }
 
   function tileContent(tile) {
@@ -258,7 +257,7 @@ export function createRenderer(config, t) {
     if (phase === "wheel") scene = wheelScene(s, l);
     else if (phase === "category") scene = categoryScene(s, l);
     else if (phase === "cards") scene = cardsScene(s, l);
-    else if (["offer", "challenge"].includes(phase))
+    else if (phase === "challenge")
       scene = challengeScene(s, l);
     else if (phase === "reward")
       scene = `<section class="scene reward-scene scene-enter">${sparks()}<div class="reward-emblem">${art("coin")}</div><span class="eyebrow">${text("ui.points")}</span><strong class="points-pop">+${number(s.points)}</strong><h1>${text("ui.reward")}</h1><p>${text("ui.pointsHint")}</p></section>`;
