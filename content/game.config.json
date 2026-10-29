@@ -408,7 +408,7 @@
       },
       {
         "kind": "effect",
-        "effect": "spin",
+        "effect": "miss",
         "count": 5
       },
       {
@@ -418,6 +418,11 @@
       }
     ],
     "reserves": [
+      {
+        "kind": "effect",
+        "effect": "spin",
+        "count": 5
+      },
       {
         "kind": "symbol",
         "symbol": "diamond",
@@ -494,6 +499,12 @@
       }
     ],
     "effects": {
+      "miss": {
+        "name_key": "effects.miss.name",
+        "icon_key": "effects.miss.icon",
+        "art": "miss",
+        "vanish": true
+      },
       "spin": {
         "spins": 1,
         "name_key": "effects.spin.name",

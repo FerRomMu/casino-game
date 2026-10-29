@@ -28,7 +28,7 @@ La partida se ejecuta en memoria. Cada carga obtiene una semilla nueva del naveg
 
 - Dos ruletas con sectores ponderados: el tamaño visual y la selección usan las mismas probabilidades normalizadas.
 - Elección automática y animada de una carta boca abajo que abre directamente el desafío, con una sola opción para pasar o indicar que no se completó, retos binarios y resultados numéricos.
-- Conversión automática de puntos en extracciones del tablero 7 × 7, incorporación de especiales y reemplazo de piedras en cuatro rodillos de veinte posiciones.
+- Conversión automática de puntos en extracciones del tablero 7 × 7, incorporación de especiales y reemplazo de piedras en cuatro rodillos de veinte posiciones. El tablero empieza con cinco X: al salir, desaparecen sin premio ni reemplazo. Las cinco tiradas están en la reserva de especiales junto a diamantes, sietes y multiplicadores, y pueden aparecer al extraer símbolos.
 - Tabla de premios encima de los rodillos, actualizada durante cada incorporación. Muestra sólo importes alcanzables por la composición actual, incluyendo Wild y multiplicador; las combinaciones imposibles quedan apagadas y el jackpot exige el símbolo excepcional en cada rodillo. En pantallas bajas se conserva la fila central que paga para mantener legibles la tabla y los controles.
 - Ruleta con sectores de colores, relieve dorado, luces animadas e iconos por categoría. Símbolos ilustrados en SVG, tipografías locales y máquina con rodillos profundos y columnas doradas.
 - Animaciones de cartas, selección de fichas, vuelos reales hacia el inventario y los rodillos, reemplazos del tablero, fuego y premios. Las fichas recogidas se muestran después de extraerse; los rodillos frenan de a uno.

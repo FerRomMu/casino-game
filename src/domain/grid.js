@@ -65,9 +65,10 @@ export function executeGrid(grid, points, config, rng) {
       if (item.tile.kind !== "symbol" || !next.reserves.length) continue;
       const specialIndex = indexOfRandom(next.reserves.length, rng);
       const special = next.reserves[specialIndex];
+      // Reserved spin tiles enter through the same upgrade path as rare symbols.
       const candidates = next.cells.flatMap((cell, i) =>
         cell?.kind === "symbol" &&
-        config.ranks[cell.symbol] < config.ranks[special.symbol]
+        (special.kind === "effect" || config.ranks[cell.symbol] < config.ranks[special.symbol])
           ? [i]
           : [],
       );
@@ -80,6 +81,10 @@ export function executeGrid(grid, points, config, rng) {
       }
     }
     for (const item of collections) {
+      if (item.tile.kind === "effect" && config.effects[item.tile.effect].vanish) {
+        item.replacement = null;
+        continue;
+      }
       const source =
         next.reserves.length && !next.pool.length ? next.reserves : next.pool;
       item.replacement = source.length

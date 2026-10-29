@@ -110,6 +110,8 @@
   "symbols.x2.icon": "×2",
   "effects.spin.name": "Tirada extra",
   "effects.spin.icon": "🎰",
+  "effects.miss.name": "Sin premio",
+  "effects.miss.icon": "X",
   "effects.bonus.name": "Explosión",
   "effects.bonus.icon": "⚡",
   "wheel_1.cards.wheel_1_cat_1_001.text": "Observá tres objetos a tu alrededor. Cerrá los ojos y nombrá los tres sin mirar.",

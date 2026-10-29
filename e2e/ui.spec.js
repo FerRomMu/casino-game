@@ -102,6 +102,20 @@ test("cards move and one is chosen automatically", async ({ page }) => {
   await expect(page.locator(".challenge-card")).toBeVisible();
 });
 
+test("the starting board shows five X tiles and no spin tiles", async ({ page }) => {
+  await prepare(page, {
+    force: { wheel_1: "cat_1" },
+    timings: { grid: 1500, gridStop: 600 },
+    reduced: false,
+  });
+  await drawChallenge(page);
+  await click(page, "success");
+  await page.waitForSelector(".tile-grid");
+  await expect(page.locator('.tile-grid use[href$="#miss"]')).toHaveCount(5);
+  await expect(page.locator('.tile-grid use[href$="#spin"]')).toHaveCount(0);
+  await noOverflow(page);
+});
+
 test("mobile symbol installation reveals a maximum without spinning the reels", async ({
   page,
 }) => {

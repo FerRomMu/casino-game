@@ -25,7 +25,7 @@ const forced = id => {
 test('configuration validates inventory, reel sizes and deck structures',()=>{
   assert.equal(validateConfig(config,decks),config);
   const invalid = structuredClone(config);
-  invalid.grid.reserves[0].units++;
+  invalid.grid.reserves.find(tile => tile.kind === 'symbol').units++;
   assert.throws(()=>validateConfig(invalid,decks),/INVENTORY/);
 });
 
@@ -106,9 +106,11 @@ test('grid preserves inventory and fills all 80 positions without quota overflow
     let grid=createGrid(config.grid,rng);
     let reels=createReels(config.slots);
     let count=0;
+    let spins=0;
     while(grid.cells.some(Boolean)){
       const before=structuredClone(grid);
       const extraction=executeGrid(grid,1,config.grid,rng);
+      spins+=extraction.spins;
       assert.deepEqual(grid,before);
       assert.equal(extraction.grid.cells.length,49);
       assert.ok(before.cells[extraction.draws[0].index]);
@@ -119,11 +121,37 @@ test('grid preserves inventory and fills all 80 positions without quota overflow
     }
     assert.equal(grid.reserves.length,0);
     assert.equal(grid.pool.length,0);
+    assert.equal(spins,5);
     assert.equal(reels.flat().filter(s=>s===config.slots.stone).length,0);
     for(const reel of reels) for(const [symbol,n] of Object.entries(config.slots.target)) assert.equal(reel.filter(s=>s===symbol).length,n);
     const empty=executeGrid(grid,5,config.grid,rng);
     assert.equal(empty.draws.length,0);
   }
+});
+
+test('initial X tiles vanish, while a selected symbol can promote a reserved spin',()=>{
+  const initial=createGrid(config.grid,seededRandom(1));
+  assert.equal(initial.cells.filter(tile=>tile?.effect==='miss').length,5);
+  assert.equal(initial.cells.filter(tile=>tile?.effect==='spin').length,0);
+  assert.equal(initial.reserves.filter(tile=>tile?.effect==='spin').length,5);
+  const cells=Array(49).fill(null);
+  cells[0]={kind:'effect',effect:'miss'};
+  cells[1]={kind:'symbol',symbol:'lemon',units:1};
+  cells[2]={kind:'symbol',symbol:'orange',units:1};
+  const grid={cells,pool:[{kind:'symbol',symbol:'cherry',units:1}],reserves:[{kind:'effect',effect:'spin'}]};
+  const missed=executeGrid(grid,1,config.grid,()=>0);
+  assert.equal(missed.draws[0].collections[0].tile.effect,'miss');
+  assert.equal(missed.draws[0].collections[0].replacement,null);
+  assert.equal(missed.grid.cells[0],null);
+  assert.equal(missed.tokens.length,0);
+  assert.equal(missed.spins,0);
+  assert.equal(missed.grid.pool.length,1);
+  const promoted=executeGrid(missed.grid,1,config.grid,()=>0);
+  assert.deepEqual(promoted.draws[0].upgrades,[{index:2,tile:{kind:'effect',effect:'spin'}}]);
+  assert.equal(promoted.grid.cells[2].effect,'spin');
+  assert.equal(promoted.grid.reserves.length,0);
+  const spun=executeGrid(promoted.grid,1,config.grid,()=>.99);
+  assert.equal(spun.spins,1);
 });
 
 test('wild substitutes, multiplier applies once, and exceptional jackpot requires four literal symbols',()=>{

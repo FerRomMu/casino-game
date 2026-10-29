@@ -276,6 +276,9 @@ try {
   }
 
   async function chaseLights(draw, duration) {
+    const collected = draw.collections.filter(
+      ({ tile }) => tile.kind !== "effect" || !config.grid.effects[tile.effect].vanish,
+    );
     const tiles = [...app.querySelectorAll("[data-cell]")];
     const active = tiles.filter((_, i) => local.gridCells[i]);
     const start = performance.now();
@@ -294,7 +297,7 @@ try {
     tiles.forEach((tile) => tile.classList.remove("lit"));
     const chosen = tiles[draw.index];
     chosen?.classList.add("chosen");
-    play("collect");
+    if (collected.length) play("collect");
     await wait("gridStop");
     for (const index of draw.explosions) {
       const cell = tiles[index];
@@ -306,7 +309,7 @@ try {
     for (const item of draw.collections)
       tiles[item.index]?.classList.add("chosen");
     await Promise.all(
-      draw.collections.map(async (item) => {
+      collected.map(async (item) => {
         await fly(
           item.tile,
           tiles[item.index],
@@ -314,7 +317,7 @@ try {
         );
       }),
     );
-    local.collected.push(...draw.collections.map((item) => item.tile));
+    local.collected.push(...collected.map((item) => item.tile));
     local.upgradedCells = [];
     for (const upgrade of draw.upgrades) {
       local.gridCells[upgrade.index] = upgrade.tile;
