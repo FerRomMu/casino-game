@@ -417,7 +417,6 @@ try {
       send({ type: "END_PREVIEW" });
     }
     local.collected = [];
-    while (state.phase === "earned_ready") await playSlotSpin(true);
     if (state.phase === "wheel") announce("ui.ready");
   }
 
@@ -568,6 +567,9 @@ try {
         case "final-spin":
           await playSlotSpin();
           break;
+        case "earned-spin":
+          if (state.phase === "earned_ready") await playSlotSpin(true);
+          break;
         case "restart":
           resetGame();
           break;
@@ -614,8 +616,8 @@ try {
                     : "success"
                     : state.phase === "decision"
                       ? "advance"
-                      : state.phase === "final_ready"
-                        ? "final-spin"
+                      : state.phase === "final_ready" || state.phase === "earned_ready"
+                        ? state.phase === "final_ready" ? "final-spin" : "earned-spin"
                         : state.phase === "finished"
                           ? "restart"
                           : null;

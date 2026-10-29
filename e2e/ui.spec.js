@@ -134,7 +134,7 @@ test("mobile symbol installation reveals a maximum without spinning the reels", 
   await noOverflow(page);
 });
 
-test("earned spin plays after installation and adds to the shared pot", async ({ page }) => {
+test("earned spin waits for a click after installation and adds to the shared pot", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const source = await readFile(new URL("../src/domain/game.js", import.meta.url), "utf8");
   await page.route("**/src/domain/game.js", (route) => route.fulfill({
@@ -181,6 +181,12 @@ test("earned spin plays after installation and adds to the shared pot", async ({
   await click(page, "success");
   await expect(page.locator('#stage[data-phase="preview"] .new-maximum.is-visible')).toBeVisible();
   await expect(page.getByRole("progressbar", { name: strings["ui.inventory"] })).toHaveAttribute("aria-valuenow", "77");
+  await ready(page, "earned_ready");
+  await expect(page.locator('[data-action="earned-spin"]')).toBeVisible();
+  await expect(page.locator(".reel-spinning")).toHaveCount(0);
+  await expect(page.locator("[data-game-total]")).toHaveAttribute("data-value", "0");
+  await noOverflow(page);
+  await click(page, "earned-spin");
   await page.waitForSelector('#stage[data-phase="earned_result"] .reel-spinning');
   await expect(page.locator("[data-accumulated]")).toHaveAttribute("data-value", "0");
   await expect(page.locator("[data-game-total]")).toHaveAttribute("data-value", "0");
@@ -416,6 +422,7 @@ test("a complete deterministic game runs with sound, cards, rewards and the fina
         await click(page, "numeric");
       } else await click(page, "success");
     } else if (phase === "decision") await click(page, "continue");
+    else if (phase === "earned_ready") await click(page, "earned-spin");
     else if (phase === "final_ready") {
       const before = Number(
         await page.locator("[data-accumulated]").getAttribute("data-value"),
@@ -1009,6 +1016,10 @@ for (const completion of ['symbol', 'spin', 'advance']) {
 
       await ready(page,'challenge');
       await click(page,'success');
+    }
+    if (completion === 'spin') {
+      await ready(page,'earned_ready');
+      await click(page,'earned-spin');
     }
     await ready(page,'finished');
     await expect(page.locator('[data-filled]')).toContainText('80');
