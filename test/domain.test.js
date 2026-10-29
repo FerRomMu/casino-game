@@ -150,24 +150,21 @@ test('exact analysis finds attainable rounded-up preview and correct exceptional
   assert.ok(Math.abs(analyzed.distribution.reduce((s,o)=>s+o.probability,0)-1)<1e-12);
 });
 
-test('first finale appearance starts final directly and exhausts configured spins',()=>{
+test('the fourth advanced category opens a challenge and keeps the game going',()=>{
   const {state:initial,context}=setup();
-  context.config=forced('w2_cat_4_finale');
+  context.config=forced('w2_cat_4');
   initial.wheel='wheel_2';
   let state=transition(initial,{type:'SPIN_WHEEL'},context);
-  assert.equal(state.phase,'finale');
-  assert.equal(state.card,null);
+  assert.equal(state.phase,'category');
   assert.equal(state.spins,0);
-  assert.equal(state.finalSpins,config.final.minSpins);
-  state=transition(state,{type:'START_FINAL'},context);
-  for(let i=0;i<config.final.minSpins;i++){
-    state=transition(state,{type:'SPIN_FINAL'},context);
-    state=transition(state,{type:'END_FINAL_RESULT'},context);
-  }
-  assert.equal(state.phase,'finished');
+  state=transition(state,{type:'SHOW_CARDS'},context);
+  state=transition(state,{type:'PICK_CARD'},context);
+  assert.equal(state.card.category,'w2_cat_4');
+  state=transition(state,{type:'ACCEPT'},context);
+  state=transition(state,{type:'RESOLVE',success:true},context);
+  assert.equal(state.phase,'reward');
   assert.equal(state.finalSpins,0);
-  assert.equal(state.history.length,config.final.minSpins);
-  assert.throws(()=>transition(state,{type:'SPIN_FINAL'},context),/INVALID_ACTION/);
+  assert.equal(state.history.length,0);
 });
 
 test('missing content is visible in development and empty in production',()=>{
@@ -247,9 +244,10 @@ test('installation celebrates only a new maximum without simulating a spin', () 
   assert.equal(higher.preview.maximum.payout,config.slots.payout.table.lemon[2]);
 });
 
-test('advanced demo wheel reserves ten percent for the finale', () => {
+test('advanced wheel gives the fourth challenge ten percent without a finale sector', () => {
   const sectors=wheelSectors(config.wheels.wheel_2.categories);
-  for(const s of sectors) assert.ok(Math.abs(s.probability-(s.behavior==='finale'?.1:.3))<1e-12);
+  for(const s of sectors) assert.ok(Math.abs(s.probability-(s.id==='w2_cat_4'?.1:.3))<1e-12);
+  assert.ok(sectors.every(s=>s.behavior==='cards'));
 });
 
 test('payout explanations identify the paying combination, wilds and one applied multiplier', async () => {
@@ -292,9 +290,9 @@ test('maximum final bank includes accumulated winnings and converges to the actu
   assert.equal(finalBank(next).maximum,finalBank(next).accumulated);
 });
 
-test('earned spins pay immediately into one pot and only missing guarantee spins remain at finale', () => {
+test('earned spins pay immediately into one pot and a later category preserves it', () => {
   const {state:initial,context}=setup();
-  context.config=forced('w2_cat_4_finale');
+  context.config=forced('w2_cat_4');
   let state=initial;
   state.wheel='wheel_2';
   state.phase='earned_ready'; state.spins=2; state.pendingSpins=2;
@@ -309,14 +307,10 @@ test('earned spins pay immediately into one pot and only missing guarantee spins
   assert.equal(state.phase,'wheel');
   assert.equal(state.pendingSpins,0);
   state=transition(state,{type:'SPIN_WHEEL'},context);
-  assert.equal(state.phase,'finale');
-  assert.equal(state.finalSpins,1);
-  state=transition(state,{type:'START_FINAL'},context);
-  state=transition(state,{type:'SPIN_FINAL'},context);
-  state=transition(state,{type:'END_FINAL_RESULT'},context);
-  assert.equal(state.phase,'finished');
-  assert.equal(state.total,300000);
-  assert.equal(state.history.length,3);
+  assert.equal(state.phase,'category');
+  assert.equal(state.finalSpins,0);
+  assert.equal(state.total,200000);
+  assert.equal(state.history.length,2);
 });
 
 test('attainable pay table uses reel positions, wilds and multipliers without inventing combinations', async () => {

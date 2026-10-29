@@ -155,9 +155,29 @@ test("earned spin plays after installation and adds to the shared pot", async ({
   }));
   await prepare(page, {
     force: { wheel_1: "cat_1" }, reduced: false,
-    timings: { previewPrize: 450, finalSpin: 1200, finalPrize: 500, flight: 80 },
+    timings: {
+      previewPrize: 450, finalSpin: 180, finalPrize: 500, flight: 80,
+      finalReelStop: 180, finalReelStep: 100, finalReelSettle: 100,
+    },
   });
   await drawChallenge(page);
+  await page.evaluate(() => {
+    window.earnedStops = [];
+    window.earlyHighlights = [];
+    new MutationObserver(() => {
+      if (document.querySelector('#stage[data-phase="earned_result"]')) {
+        for (const node of document.querySelectorAll(".reel-stopped")) {
+          const index = Number(node.dataset.reel);
+          if (!window.earnedStops.some((stop) => stop.index === index))
+            window.earnedStops.push({ index, time: performance.now() });
+        }
+        if (document.querySelector(".reel-spinning") && document.querySelector("[data-contribution]"))
+          window.earlyHighlights.push(true);
+      }
+    }).observe(document.querySelector("#app"), {
+      subtree: true, childList: true, attributes: true, attributeFilter: ["class"],
+    });
+  });
   await click(page, "success");
   await expect(page.locator('#stage[data-phase="preview"] .new-maximum.is-visible')).toBeVisible();
   await expect(page.getByRole("progressbar", { name: strings["ui.inventory"] })).toHaveAttribute("aria-valuenow", "77");
@@ -169,6 +189,11 @@ test("earned spin plays after installation and adds to the shared pot", async ({
   await ready(page, "wheel");
   const total = Number(await page.locator("[data-game-total]").getAttribute("data-value"));
   expect(total).toBeGreaterThan(0);
+  const stops = await page.evaluate(() => window.earnedStops);
+  expect(stops.map((stop) => stop.index)).toEqual([0, 1, 2, 3]);
+  for (let i = 1; i < stops.length; i++)
+    expect(stops[i].time - stops[i - 1].time).toBeGreaterThanOrEqual(180 + (i - 1) * 100 - 25);
+  expect(await page.evaluate(() => window.earlyHighlights)).toEqual([]);
   await expect(page.locator("[data-banked-spins]")).toHaveText("1");
   await drawChallenge(page);
   await click(page, "success");
@@ -303,11 +328,11 @@ test("rejection uses the configured incomplete reward", async ({ page }) => {
   expect(filled + spins).toBeGreaterThan(0);
 });
 
-test("third progression can continue; fourth changes wheels; final spins cannot be duplicated", async ({
+test("third progression can continue; fourth changes wheels; surprise category stays playable", async ({
   page,
 }) => {
   const cfg = await prepare(page, {
-    force: { wheel_1: "cat_7_progression", wheel_2: "w2_cat_4_finale" },
+    force: { wheel_1: "cat_7_progression", wheel_2: "w2_cat_4" },
   });
   for (let i = 0; i < 3; i++) {
     await click(page, "spin");
@@ -327,26 +352,13 @@ test("third progression can continue; fourth changes wheels; final spins cannot 
     strings["wheel_2.label"],
   );
   await click(page, "spin");
-  await ready(page, "final_ready");
-  await expect(page.locator("[data-remaining-spins]")).toHaveText(
-    String(cfg.final.minSpins),
-  );
-  await page.locator('[data-action="final-spin"]').evaluate((node) => {
-    node.click();
-    node.click();
-  });
-  await ready(page, "final_ready");
-  await expect(page.locator("[data-remaining-spins]")).toHaveText(
-    String(cfg.final.minSpins - 1),
-  );
-  for (let i = 1; i < cfg.final.minSpins; i++) {
-    await click(page, "final-spin");
-    await ready(
-      page,
-      i === cfg.final.minSpins - 1 ? "finished" : "final_ready",
-    );
-  }
+  await ready(page, "challenge");
+  await expect(page.locator(".challenge-card h1")).toContainText(/Nombrá|Inventá/);
+  await click(page, "success");
+  await ready(page, "wheel");
   await expect(page.locator('[data-action="final-spin"]')).toHaveCount(0);
+  await expect(page.locator("[data-filled]")).not.toHaveText("80 / 80");
+  await click(page, "request-restart");
   await click(page, "restart");
   await ready(page, "wheel");
   await expect(page.locator("[data-turn]")).toHaveText("00");
@@ -357,7 +369,7 @@ test("third progression can advance immediately and restart confirmation can can
   page,
 }) => {
   await prepare(page, {
-    force: { wheel_1: "cat_7_progression", wheel_2: "w2_cat_4_finale" },
+    force: { wheel_1: "cat_7_progression", wheel_2: "w2_cat_4" },
   });
   for (let i = 0; i < 3; i++) {
     await click(page, "spin");
@@ -778,67 +790,6 @@ test("blast animation collects the domain snapshot and high maximum uses a large
   expect(
     Number((await page.locator("[data-filled]").innerText()).split("/")[0]),
   ).toBe(expected.tokens.reduce((n, t) => n + t.units, 0));
-});
-
-test("final reels stop left to right with growing pauses and never reveal the bank early", async ({
-  page,
-}) => {
-  await prepare(page, {
-    force: { wheel_1: "cat_7_progression", wheel_2: "w2_cat_4_finale" },
-    reduced: false,
-    timings: {
-      finalSpin: 180,
-      finalReelStop: 180,
-      finalReelStep: 100,
-      finalReelSettle: 100,
-      finalPrize: 30,
-    },
-  });
-  for (let i = 0; i < 3; i++) {
-    await click(page, "spin");
-    await ready(page, i === 2 ? "decision" : "wheel");
-  }
-  await click(page, "advance");
-  await ready(page, "wheel");
-  await click(page, "spin");
-  await ready(page, "final_ready");
-  await page.evaluate(() => {
-    window.stops = [];
-    window.earlyHighlights = [];
-    new MutationObserver(() => {
-      for (const node of document.querySelectorAll(".reel-stopped")) {
-        const index = Number(node.dataset.reel);
-        if (!window.stops.some((s) => s.index === index))
-          window.stops.push({ index, time: performance.now() });
-      }
-      if (
-        document.querySelector(".reel-spinning") &&
-        document.querySelector("[data-contribution]")
-      )
-        window.earlyHighlights.push(true);
-    }).observe(document.querySelector("#app"), {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-  });
-  await click(page, "final-spin");
-  await page.waitForSelector(
-    '#stage[data-phase="final_ready"][data-busy="false"]',
-  );
-  const stops = await page.evaluate(() => window.stops);
-  expect(stops.map((s) => s.index)).toEqual([0, 1, 2, 3]);
-  for (let i = 1; i < 4; i++)
-    expect(stops[i].time - stops[i - 1].time).toBeGreaterThanOrEqual(
-      180 + (i - 1) * 100 - 25,
-    );
-  expect(await page.evaluate(() => window.earlyHighlights)).toEqual([]);
-  await expect(page.locator("[data-contribution]")).toHaveCount(0);
-  await expect(page.locator("[data-accumulated]")).toHaveAttribute(
-    "data-value",
-    "0",
-  );
 });
 
 test("pay table updates as symbols are installed and matches the domain before the maximum reveal", async ({

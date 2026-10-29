@@ -220,13 +220,13 @@
           "art": "bolt"
         },
         {
-          "id": "w2_cat_4_finale",
+          "id": "w2_cat_4",
           "weight": 10,
-          "name_key": "wheel_2.w2_cat_4_finale.name",
-          "description_key": "wheel_2.w2_cat_4_finale.description",
+          "name_key": "wheel_2.w2_cat_4.name",
+          "description_key": "wheel_2.w2_cat_4.description",
           "color": "#e87d0b",
-          "behavior": "finale",
-          "art": "crown"
+          "behavior": "cards",
+          "art": "cards"
         }
       ]
     }

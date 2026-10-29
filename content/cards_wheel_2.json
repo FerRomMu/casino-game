@@ -72,5 +72,25 @@
       ]
     },
     "maximum": 3
+  },
+  {
+    "id": "wheel_2_w2_cat_4_001",
+    "category": "w2_cat_4",
+    "text_key": "wheel_2.cards.wheel_2_w2_cat_4_001.text",
+    "resolution": "binary",
+    "reward": {
+      "success": 4,
+      "failure": 1
+    }
+  },
+  {
+    "id": "wheel_2_w2_cat_4_002",
+    "category": "w2_cat_4",
+    "text_key": "wheel_2.cards.wheel_2_w2_cat_4_002.text",
+    "resolution": "binary",
+    "reward": {
+      "success": 4,
+      "failure": 1
+    }
   }
 ]

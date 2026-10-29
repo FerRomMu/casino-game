@@ -6,6 +6,12 @@ import {categoriesFor, runGame} from '../research/progression/engine.mjs';
 
 const load = async path => JSON.parse(await readFile(new URL(path, import.meta.url), 'utf8'));
 const config = await load('../content/game.config.json');
+// Historical research modeled a 10% finale sector. Keep that model stable.
+const legacyConfig = structuredClone(config);
+legacyConfig.wheels.wheel_2.categories[3] = {
+  ...legacyConfig.wheels.wheel_2.categories[3],
+  id:'w2_cat_4_finale', behavior:'finale',
+};
 const decks = {wheel_1:await load('../content/cards_wheel_1.json'), wheel_2:await load('../content/cards_wheel_2.json')};
 const experiment = await load('../research/progression/models.json');
 
@@ -24,7 +30,7 @@ test('research gates, waiting increases and proportional wheel weights are respe
 test('bounded models preserve overflow and enforce limits including continued play', () => {
   let overflowSeen = false;
   for (const model of experiment.models.filter(m => m.cap)) for (const choice of [false, true]) for (let seed = 1; seed <= 50; seed++) {
-    const r = runGame(config, decks, experiment, model, experiment.profiles[2], choice, seed, true);
+    const r = runGame(legacyConfig, decks, experiment, model, experiment.profiles[2], choice, seed, true);
     assert.equal(r.timeout, false);
     assert.ok(r.entry >= 56 && r.entry <= model.cap * 80);
     assert.equal(r.fullInWheel1, false);
