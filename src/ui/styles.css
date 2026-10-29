@@ -3288,6 +3288,21 @@ body {
   color: #ffe1a2;
   text-shadow: 0 0 18px #ffb62477;
 }
+.prize-board.new-maximum.is-visible {
+  border: 1px solid #ffd878a8;
+  border-radius: 12px;
+  background: radial-gradient(ellipse at center, #f5c55138, #6c2e6618 70%, transparent);
+  box-shadow: 0 0 32px #ffc44a55, inset 0 0 22px #fff2a522;
+  animation: maximum-reveal 0.8s cubic-bezier(0.18, 0.85, 0.3, 1) both;
+}
+@keyframes maximum-reveal {
+  0% { opacity: 0; transform: scale(0.6) translateY(18px); filter: brightness(2); }
+  65% { opacity: 1; transform: scale(1.08); filter: brightness(1.35); }
+  100% { opacity: 1; transform: scale(1); filter: brightness(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prize-board.new-maximum.is-visible { animation-duration: 0.01ms; }
+}
 .fine-print {
   margin-top: 6px;
 }

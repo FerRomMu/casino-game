@@ -228,23 +228,22 @@ test('every insertion replaces an actual stone and preserves all previously inst
   }
 });
 
-test('preview celebrates only a new maximum; otherwise samples a real uncredited spin', () => {
+test('installation celebrates only a new maximum without simulating a spin', () => {
   const {state,context}=setup();
   state.phase='machine'; state.reels[0][0]='lemon'; state.spins=4;
   let preview=transition(state,{type:'SHOW_PREVIEW'},context);
   assert.equal(preview.newMaximum,true);
-  assert.equal(preview.previewOutcome.payout,config.slots.payout.table.lemon[1]);
-  assert.equal(preview.maximumSeen,preview.previewOutcome.payout);
+  assert.equal(preview.preview.maximum.payout,config.slots.payout.table.lemon[1]);
+  assert.equal(preview.maximumSeen,preview.preview.maximum.payout);
   preview.phase='machine';
-  const random=transition(preview,{type:'SHOW_PREVIEW'},{...context,rng:()=>.999});
-  assert.equal(random.newMaximum,false);
-  assert.equal(random.previewOutcome.payout,0);
-  assert.deepEqual(random.previewOutcome.stops,[19,19,19,19]);
-  assert.equal(random.spins,4); assert.equal(random.total,0); assert.equal(random.history.length,0);
-  random.phase='machine'; random.reels[1][0]='lemon';
-  const higher=transition(random,{type:'SHOW_PREVIEW'},context);
+  const unchanged=transition(preview,{type:'SHOW_PREVIEW'},{...context,rng:()=>{throw Error('UNEXPECTED_RANDOM');}});
+  assert.equal(unchanged.phase,'wheel');
+  assert.equal(unchanged.newMaximum,false);
+  assert.equal(unchanged.spins,4); assert.equal(unchanged.total,0); assert.equal(unchanged.history.length,0);
+  unchanged.phase='machine'; unchanged.reels[1][0]='lemon';
+  const higher=transition(unchanged,{type:'SHOW_PREVIEW'},{...context,rng:()=>{throw Error('UNEXPECTED_RANDOM');}});
   assert.equal(higher.newMaximum,true);
-  assert.equal(higher.previewOutcome.payout,config.slots.payout.table.lemon[2]);
+  assert.equal(higher.preview.maximum.payout,config.slots.payout.table.lemon[2]);
 });
 
 test('advanced demo wheel reserves ten percent for the finale', () => {

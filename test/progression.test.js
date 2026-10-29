@@ -99,7 +99,7 @@ test('large rewards stop at the cap and preserve every overflow symbol until the
   for(const reel of state.reels) for(const [symbol,n] of Object.entries(config.slots.target)) assert.equal(reel.filter(s=>s===symbol).length,n);
 });
 
-test('exact cap without overflow advances once and keeps an ordinary preview in wheel two', () => {
+test('exact cap without overflow advances once and reveals a new maximum in wheel two', () => {
   const rng=seededRandom(5),context={config,decks,rng};
   let state=stateWithFill(71);
   state.phase='grid'; state.extraction={tokens:[{symbol:full().flat()[71],units:1}],draws:[]};
@@ -111,6 +111,7 @@ test('exact cap without overflow advances once and keeps an ordinary preview in 
   assert.equal(state.insertion.length,0);
   state=transition(state,{type:'SHOW_PREVIEW'},context);
   assert.equal(state.phase,'preview');
+  assert.equal(state.newMaximum,true);
   state=transition(state,{type:'END_PREVIEW'},context);
   assert.equal(state.phase,'wheel');
   assert.equal(state.wheel,config.progression.nextWheel);

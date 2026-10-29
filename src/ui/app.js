@@ -403,22 +403,18 @@ try {
     }
     local.displayReels = null;
     local.displayStops = null;
-    local.slotSpinning = true;
-    local.prizeVisible = false;
     send({ type: "SHOW_PREVIEW" });
-    if (["finale", "wheel_transition"].includes(state.phase)) {
-      local.slotSpinning = false;
+    if (state.phase !== "preview") {
       local.collected = [];
       render();
       return;
     }
-    await revealReels("previewSpin");
-    if (state.newMaximum) {
-      play("win");
-      burst(app.querySelector(".prize-board"), true);
-      announce("ui.previewMax");
-    }
-    await countPrize(state.previewOutcome.payout);
+    local.prizeVisible = true;
+    render();
+    play("win");
+    burst(app.querySelector(".prize-board"), true);
+    announce("ui.previewMax");
+    await countPrize(state.preview.maximum.payout);
     await wait("previewPrize");
     local.prizeVisible = false;
     local.collected = [];

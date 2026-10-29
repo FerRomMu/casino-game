@@ -102,14 +102,21 @@ test("cards move and one is chosen automatically", async ({ page }) => {
   await expect(page.locator(".challenge-card")).toBeVisible();
 });
 
-test("moving reel strips keep visible cells throughout a mobile spin", async ({
+test("mobile symbol installation reveals a maximum without spinning the reels", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await prepare(page, {
     force: { wheel_1: "cat_6" },
-    timings: { previewSpin: 1800, reelStop: 100 },
+    timings: { previewPrize: 1800 },
     reduced: false,
+  });
+  await page.evaluate(() => {
+    window.previewSpins = 0;
+    new MutationObserver(() => {
+      if (document.querySelector('#stage[data-phase="preview"] .reel-spinning'))
+        window.previewSpins++;
+    }).observe(document.querySelector("#app"), { childList: true, subtree: true });
   });
   await drawChallenge(page);
   await click(page, "more");
@@ -120,33 +127,10 @@ test("moving reel strips keep visible cells throughout a mobile spin", async ({
       .evaluate((node) => getComputedStyle(node).animationName),
   ).toBe("none");
   await click(page, "numeric");
-  await page.waitForSelector('#stage[data-phase="preview"] .reel-spinning');
-  const emptyFrames = await page.evaluate(async () => {
-    const start = performance.now(),
-      empty = [];
-    await new Promise((resolve) => {
-      const frame = () => {
-        for (const reel of document.querySelectorAll(".reel-spinning")) {
-          const window = reel
-            .querySelector(".reel-window")
-            .getBoundingClientRect();
-          const visible = [
-            ...reel.querySelectorAll(".reel-blur-strip .reel-cell"),
-          ].some((cell) => {
-            const rect = cell.getBoundingClientRect();
-            return rect.top < window.bottom && rect.bottom > window.top;
-          });
-          if (!visible) empty.push(reel.dataset.reel);
-        }
-        if (performance.now() - start >= 1000) resolve();
-        else requestAnimationFrame(frame);
-      };
-      requestAnimationFrame(frame);
-    });
-    return empty;
-  });
-  expect(emptyFrames).toEqual([]);
+  await expect(page.locator('#stage[data-phase="preview"] .new-maximum.is-visible')).toBeVisible();
+  expect(await page.locator(".new-maximum").evaluate((node) => getComputedStyle(node).animationName)).not.toBe("none");
   await ready(page, "wheel");
+  expect(await page.evaluate(() => window.previewSpins)).toBe(0);
   await noOverflow(page);
 });
 
@@ -559,7 +543,7 @@ for (const [width, height] of [
   });
 }
 
-test("insertion lands on stones at actual positions and plays exactly one new-maximum preview", async ({
+test("insertion lands on stones and skips the maximum animation when unchanged", async ({
   page,
 }) => {
   await prepare(page, {
@@ -568,7 +552,6 @@ test("insertion lands on stones at actual positions and plays exactly one new-ma
     timings: {
       flight: 100,
       insertToken: 100,
-      previewSpin: 200,
       previewPrize: 500,
     },
     mutate: (config) => {
@@ -583,10 +566,13 @@ test("insertion lands on stones at actual positions and plays exactly one new-ma
     window.machineSnapshots = [];
     window.previews = [];
     window.previewBoards = [];
+    window.previewSpins = 0;
     const seenBoards = new WeakSet();
     let lastPhase = "";
     new MutationObserver(() => {
       const stage = document.querySelector("#stage");
+      if (stage?.dataset.phase === "preview" && document.querySelector(".reel-spinning"))
+        window.previewSpins++;
       if (stage?.dataset.phase === "machine")
         window.machineSnapshots.push(
           [...document.querySelectorAll("[data-reel]")].map((reel) => ({
@@ -623,22 +609,20 @@ test("insertion lands on stones at actual positions and plays exactly one new-ma
     await click(page, "success");
     await page.waitForSelector('#stage[data-phase="wheel"][data-busy="false"]');
     await ready(page, "wheel");
-    const board = await page.evaluate(
-      (index) => window.previewBoards[index],
-      turn,
-    );
-    expect(board.kind).toBe(turn === 0 ? "maximum" : "random");
-    expect(board.label).toBe(
-      strings[turn === 0 ? "ui.previewMax" : "ui.previewExample"],
-    );
-    expect(board.labelSize).toBe(board.numberSize);
+    const boards = await page.evaluate(() => window.previewBoards);
+    expect(boards).toHaveLength(1);
+    expect(boards[0].kind).toBe("maximum");
+    expect(boards[0].label).toBe(strings["ui.previewMax"]);
+    expect(boards[0].labelSize).toBe(boards[0].numberSize);
     await contentFits(page);
   }
-  const { snapshots, previews } = await page.evaluate(() => ({
+  const { snapshots, previews, previewSpins } = await page.evaluate(() => ({
     snapshots: window.machineSnapshots,
     previews: window.previews,
+    previewSpins: window.previewSpins,
   }));
-  expect(previews).toEqual(["maximum", "random"]);
+  expect(previews).toEqual(["maximum"]);
+  expect(previewSpins).toBe(0);
   let inserted = 0;
   for (let i = 1; i < snapshots.length; i++)
     for (let r = 0; r < 4; r++) {
@@ -815,7 +799,7 @@ test("final reels stop left to right with growing pauses and never reveal the ba
   );
 });
 
-test("pay table updates as symbols are installed and matches the domain before the preview", async ({
+test("pay table updates as symbols are installed and matches the domain before the maximum reveal", async ({
   page,
 }) => {
   const config = await prepare(page, {

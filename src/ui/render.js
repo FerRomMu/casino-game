@@ -158,9 +158,7 @@ export function createRenderer(config, t) {
 
   function machine(s, line, l) {
     const reels = l.displayReels ?? s.reels;
-    const stops =
-      l.displayStops ??
-      (s.phase === "preview" ? s.previewOutcome.stops : s.lastSpin?.stops);
+    const stops = l.displayStops ?? s.lastSpin?.stops;
     const result =
       ["final_result", "final_ready", "finished"].includes(s.phase) &&
       l.prizeVisible &&
@@ -194,7 +192,6 @@ export function createRenderer(config, t) {
       ].includes(s.phase),
       finished = s.phase === "finished",
       preview = s.phase === "preview";
-    const outcome = preview ? s.previewOutcome : null;
     // Keep both banks at their previous values until the last reel reveals the prize.
     const bankState =
       s.phase === "final_result" && l.slotSpinning
@@ -205,15 +202,11 @@ export function createRenderer(config, t) {
       (reel) =>
         reel.find((id) => id !== config.slots.stone) ?? config.slots.stone,
     );
-    const line = final
-      ? (s.lastSpin?.line ?? idle)
-      : preview
-        ? outcome.line
-        : idle;
+    const line = final ? (s.lastSpin?.line ?? idle) : idle;
     const prize = finished
       ? s.total
       : preview
-        ? outcome.payout
+        ? s.preview.maximum.payout
         : (s.lastSpin?.payout ?? 0);
     const title = finished
       ? "ui.finished"
@@ -226,7 +219,7 @@ export function createRenderer(config, t) {
             : preview
               ? "ui.preview"
               : "ui.installing";
-    return `<section class="scene slots-scene ${l.enter ? "scene-enter" : ""} ${l.prizeVisible ? "show-prize" : ""}"><div class="scene-heading"><span class="eyebrow">${text(final ? "ui.finalBadge" : preview ? "ui.previewBadge" : "ui.machine")}</span><h1>${text(title)}</h1>${!final && !preview ? `<p>${text("ui.installingHint")}</p>` : ""}</div>${final ? `<div class="final-stats"><div class="final-spin-bank"><span>${text("ui.remaining")}</span><b data-remaining-spins>${number(s.spins)}</b></div><div class="accumulated-bank"><span>${text("ui.accumulated")}</span><b data-accumulated data-value="${bank.accumulated}">${money(bank.accumulated)}</b></div><div class="pot-bank"><span>${text("ui.pot")}</span><b data-pot data-value="${bank.maximum}">${money(bank.maximum)}</b></div></div>` : ""}<div class="machine-theater">${payoutTable(s, l)}${machine(s, line, l)}${!final && !preview ? `<div class="token-queue" aria-label="${text("ui.collected")}">${s.extraction.tokens.map((token, i) => `<div data-queue="${i}" class="queue-token">${tileContent({ kind: "symbol", ...token })}</div>`).join("")}</div>` : ""}</div>${preview || s.phase === "final_result" || finished ? `<div class="prize-board ${l.prizeVisible || finished ? "is-visible" : ""} ${preview && s.newMaximum ? "new-maximum" : ""}" style="--prize-scale:${[...config.ui.prizeTiers].reverse().find((tier) => prize >= tier.minimum)?.scale ?? 1}" data-preview-kind="${preview ? (s.newMaximum ? "maximum" : "random") : "final"}" aria-live="polite"><span>${text(finished ? "ui.total" : preview ? (s.newMaximum ? "ui.previewMax" : "ui.previewExample") : prize > 0 ? "ui.prize" : "ui.zero")}</span><strong data-prize data-value="${prize}">${money(prize)}</strong></div>` : ""}${preview ? `<p class="fine-print">${text("ui.previewNote")}</p>` : ""}${s.phase === "final_ready" ? `<div class="final-actions">${button("final-spin", "ui.finalSpin", "primary green-button final-spin", l.busy ? "disabled" : "")}<p>${text("ui.finalSpinHint")}</p></div>` : ""}${s.phase === "finale" ? `<div class="final-intro"><b>${number(s.spins)}</b><span>${text("ui.finalIntroLabel")}</span></div>` : ""}${s.phase === "final_result" && l.slotSpinning ? `<p class="spinning-label">${text("ui.prizePending")}</p>` : ""}${finished ? `<div class="finish-actions"><p>${text("ui.finishedHint")}</p>${button("restart", "app.restart", "primary green-button")}</div>` : ""}</section>`;
+    return `<section class="scene slots-scene ${l.enter ? "scene-enter" : ""} ${l.prizeVisible ? "show-prize" : ""}"><div class="scene-heading"><span class="eyebrow">${text(final ? "ui.finalBadge" : preview ? "ui.previewBadge" : "ui.machine")}</span><h1>${text(title)}</h1>${!final && !preview ? `<p>${text("ui.installingHint")}</p>` : ""}</div>${final ? `<div class="final-stats"><div class="final-spin-bank"><span>${text("ui.remaining")}</span><b data-remaining-spins>${number(s.spins)}</b></div><div class="accumulated-bank"><span>${text("ui.accumulated")}</span><b data-accumulated data-value="${bank.accumulated}">${money(bank.accumulated)}</b></div><div class="pot-bank"><span>${text("ui.pot")}</span><b data-pot data-value="${bank.maximum}">${money(bank.maximum)}</b></div></div>` : ""}<div class="machine-theater">${payoutTable(s, l)}${machine(s, line, l)}${!final && !preview ? `<div class="token-queue" aria-label="${text("ui.collected")}">${s.extraction.tokens.map((token, i) => `<div data-queue="${i}" class="queue-token">${tileContent({ kind: "symbol", ...token })}</div>`).join("")}</div>` : ""}</div>${preview || s.phase === "final_result" || finished ? `<div class="prize-board ${l.prizeVisible || finished ? "is-visible" : ""} ${preview ? "new-maximum" : ""}" style="--prize-scale:${[...config.ui.prizeTiers].reverse().find((tier) => prize >= tier.minimum)?.scale ?? 1}" data-preview-kind="${preview ? "maximum" : "final"}" aria-live="polite"><span>${text(finished ? "ui.total" : preview ? "ui.previewMax" : prize > 0 ? "ui.prize" : "ui.zero")}</span><strong data-prize data-value="${prize}">${money(prize)}</strong></div>` : ""}${s.phase === "final_ready" ? `<div class="final-actions">${button("final-spin", "ui.finalSpin", "primary green-button final-spin", l.busy ? "disabled" : "")}<p>${text("ui.finalSpinHint")}</p></div>` : ""}${s.phase === "finale" ? `<div class="final-intro"><b>${number(s.spins)}</b><span>${text("ui.finalIntroLabel")}</span></div>` : ""}${s.phase === "final_result" && l.slotSpinning ? `<p class="spinning-label">${text("ui.prizePending")}</p>` : ""}${finished ? `<div class="finish-actions"><p>${text("ui.finishedHint")}</p>${button("restart", "app.restart", "primary green-button")}</div>` : ""}</section>`;
   }
 
   function progressionScene(s, l) {
