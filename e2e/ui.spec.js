@@ -906,6 +906,7 @@ for (const [width, height] of [
   [390, 844],
   [844, 390],
   [1060, 592],
+  [1280, 720],
   [1440, 900],
 ]) {
   test(`complete prize table fits above reels at ${width}x${height}`, async ({
@@ -970,6 +971,7 @@ for (const [width, height] of [
         };
       });
       expect(geometry.panel.bottom).toBeLessThanOrEqual(geometry.reels.top + 1);
+      if (width > 900) expect(geometry.reels.height).toBeGreaterThanOrEqual(geometry.panel.height);
       expect(geometry.panel.top).toBeGreaterThanOrEqual(0);
       expect(geometry.panel.right).toBeLessThanOrEqual(width + 1);
       expect(geometry.button.bottom).toBeLessThanOrEqual(height);

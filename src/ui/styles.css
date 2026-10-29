@@ -4421,7 +4421,8 @@ body {
     margin-top: 5px;
   }
 }
-@media (max-height: 650px) and (orientation: landscape) {
+@media (max-height: 760px) and (min-width: 901px) and (orientation: landscape),
+  (max-height: 650px) and (max-width: 900px) and (orientation: landscape) {
   .slots-scene {
     display: grid;
     grid-template-columns: 145px minmax(0, 1fr);
@@ -4570,12 +4571,21 @@ body {
     height: clamp(24px, 3.4cqh, 36px);
   }
   .slots-scene {
-    --slot-cell-height: clamp(62px, 8.5cqh, 88px);
+    --slot-cell-height: clamp(72px, 11cqh, 100px);
+  }
+  .slots-scene .reel-window {
+    height: calc(var(--slot-cell-height) * 3);
+  }
+  .slots-scene .reel-static .adjacent-symbol {
+    display: flex;
   }
   .slots-scene .machine-marquee {
     height: clamp(30px, 4.5cqh, 48px);
   }
   .slots-scene .machine-base {
     height: clamp(20px, 3cqh, 30px);
+  }
+  .slots-scene .final-actions .primary {
+    min-height: 52px;
   }
 }
