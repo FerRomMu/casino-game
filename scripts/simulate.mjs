@@ -39,6 +39,8 @@ for (let game=0;game<count;game++) {
       case 'grid':send({type:'INSERT_TOKENS'});break;
       case 'machine':send({type:'SHOW_PREVIEW'});break;
       case 'preview':send({type:'END_PREVIEW'});break;
+      case 'earned_ready':send({type:'SPIN_EARNED'});break;
+      case 'earned_result':send({type:'END_EARNED_RESULT'});break;
       case 'wheel_transition':send({type:'ADVANCE_WHEEL'});break;
       case 'progression':send({type:'END_PROGRESSION'});break;
       case 'decision':send({type:'CHOOSE_PROGRESSION',continue:config.simulation.continueAtChoice});break;
@@ -75,7 +77,7 @@ function stats(values) {
 const actual = stats(totals), complete = stats(finalSamples);
 const report = {
   contentMode:config.contentMode,seed,
-  actualGames:{...actual,timeouts,finalSpins:stats(spinCounts),filledPositions:stats(fillings),ordinaryHits,exceptionalHits,totalSpins},
+  actualGames:{...actual,timeouts,playedSpins:stats(spinCounts),filledPositions:stats(fillings),ordinaryHits,exceptionalHits,totalSpins},
   completeMachine:{perSpin:{expected:exact.expected,maximum:exact.maximum.payout,ordinaryProbability:exact.ordinaryProbability,exceptionalProbability:exact.exceptionalProbability,distribution:exact.distribution},finalTotals:complete},
   targets:config.simulation.targets,
   targetComparison:{actualGames:{q1Ratio:actual.q1/config.simulation.targets.q1,medianRatio:actual.median/config.simulation.targets.median},completeMachine:{q1Ratio:complete.q1/config.simulation.targets.q1,medianRatio:complete.median/config.simulation.targets.median}},

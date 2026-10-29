@@ -831,6 +831,23 @@ summary {
   line-height: 1;
   text-shadow: 0 2px 0 #81521a;
 }
+.spin-bank .total-balance {
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px solid #ffde8750;
+}
+.spin-bank .total-balance > span {
+  font-size: 9px;
+  letter-spacing: 0.3px;
+}
+.spin-bank .total-balance > b {
+  color: #d6ff98;
+  font-family: var(--display);
+  font-size: clamp(13px, 1.4vw, 20px);
+  white-space: nowrap;
+}
 .progress-panel .panel-heading > b {
   color: #d5b4e7;
   font-size: 10px;

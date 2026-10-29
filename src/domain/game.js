@@ -3,8 +3,7 @@ import { createGrid, executeGrid } from './grid.js';
 import { createReels, insertTokens, analyzeSlots, spinSlots } from './slots.js';
 import { progressionStatus, wheelCategories, splitAtProgressionLimit } from './progression.js';
 
-// Completion closes only the advanced wheel, and requires earned spins: the
-// minimum final-spin guarantee must not count as progression already collected.
+// Completion closes only the advanced wheel after enough spins were earned.
 export function shouldFinishOnCompletion(state, config) {
   return config.final.autoFinishWhenComplete === true &&
     state.wheel === config.progression.nextWheel &&
@@ -17,6 +16,7 @@ export function createGame(config, rng, participantId = 'participant_1') {
   return {
     participantId, phase: 'wheel', wheel: config.progression.initialWheel,
     progression: 0, appearances: 0, continued: false, points: 0, spins: 0,
+    pendingSpins: 0, finalSpins: 0,
     progressionMisses: 0, spinCategories: null, pendingTokens: [],
     total: 0, turn: 0, usedCards: [], grid: createGrid(config.grid, rng),
     reels: createReels(config.slots), category: null, card: null, extraction: null,
@@ -32,7 +32,7 @@ export function transition(state, action, context) {
     if (!phases.includes(s.phase)) throw new Error(`INVALID_ACTION:${s.phase}:${action.type}`);
   };
   const enterFinal = () => {
-    s.spins = Math.max(config.final.minSpins, Math.min(config.final.maxSpins, s.spins));
+    s.finalSpins = Math.max(0, config.final.minSpins - s.spins);
     s.preview = analyzeSlots(s.reels, config.slots);
     s.phase = 'finale';
   };
@@ -95,7 +95,9 @@ export function transition(state, action, context) {
       requirePhase('reward');
       s.extraction = executeGrid(s.grid, s.points, config.grid, rng);
       s.grid = s.extraction.grid;
-      s.spins = Math.min(config.final.maxSpins, s.spins + s.extraction.spins);
+      const earned = s.extraction.spins;
+      s.spins += earned;
+      s.pendingSpins += earned;
       s.points = 0;
       s.phase = 'grid';
       break;
@@ -112,15 +114,34 @@ export function transition(state, action, context) {
     }
     case 'SHOW_PREVIEW':
       requirePhase('machine');
-      if (progressionStatus(s, config).atLimit) { s.phase = 'wheel_transition'; break; }
-      if (shouldFinishOnCompletion(s, config)) { enterFinal(); break; }
       s.preview = analyzeSlots(s.reels, config.slots);
       s.newMaximum = s.preview.maximum.payout > s.maximumSeen;
       s.maximumSeen = Math.max(s.maximumSeen, s.preview.maximum.payout);
       if (s.newMaximum) s.phase = 'preview';
+      else if (progressionStatus(s, config).atLimit) returnToWheel();
+      else if (s.pendingSpins > 0) s.phase = 'earned_ready';
       else returnToWheel();
       break;
-    case 'END_PREVIEW': requirePhase('preview'); returnToWheel(); break;
+    case 'END_PREVIEW':
+      requirePhase('preview');
+      if (progressionStatus(s, config).atLimit) returnToWheel();
+      else if (s.pendingSpins > 0) s.phase = 'earned_ready';
+      else returnToWheel();
+      break;
+    case 'SPIN_EARNED':
+      requirePhase('earned_ready');
+      if (s.pendingSpins <= 0) throw new Error('NO_SPINS');
+      s.lastSpin = spinSlots(s.reels, config.slots, rng);
+      s.total += s.lastSpin.payout;
+      s.pendingSpins--;
+      s.history.push(s.lastSpin);
+      s.phase = 'earned_result';
+      break;
+    case 'END_EARNED_RESULT':
+      requirePhase('earned_result');
+      if (s.pendingSpins > 0) s.phase = 'earned_ready';
+      else returnToWheel();
+      break;
     case 'ADVANCE_WHEEL':
       requirePhase('wheel_transition');
       s.wheel = config.progression.nextWheel;
@@ -145,29 +166,30 @@ export function transition(state, action, context) {
       if (!s.continued) s.wheel = config.progression.nextWheel;
       returnToWheel();
       break;
-    case 'START_FINAL': requirePhase('finale'); s.phase = 'final_ready'; break;
+    case 'START_FINAL': requirePhase('finale'); s.phase = s.finalSpins > 0 ? 'final_ready' : 'finished'; break;
     case 'SPIN_FINAL':
       requirePhase('final_ready');
-      if (s.spins <= 0) throw new Error('NO_SPINS');
+      if (s.finalSpins <= 0) throw new Error('NO_SPINS');
       s.lastSpin = spinSlots(s.reels, config.slots, rng);
       s.total += s.lastSpin.payout;
-      s.spins--;
+      s.finalSpins--;
       s.history.push(s.lastSpin);
       s.phase = 'final_result';
       break;
     case 'END_FINAL_RESULT':
       requirePhase('final_result');
-      s.phase = s.spins > 0 ? 'final_ready' : 'finished';
+      s.phase = s.finalSpins > 0 ? 'final_ready' : 'finished';
       break;
     default: throw new Error(`UNKNOWN_ACTION:${action.type}`);
   }
   return s;
 }
 
-// Maximum attainable final total includes the prize already banked.
+// The accumulated pot carries through the whole game. Only unplayed spins
+// contribute to the maximum still reachable from the current machine.
 export function finalBank(state) {
   return {
     accumulated: state.total,
-    maximum: state.total + (state.preview?.maximum.payout ?? 0) * state.spins,
+    maximum: state.total + (state.preview?.maximum.payout ?? 0) * (state.pendingSpins + state.finalSpins),
   };
 }

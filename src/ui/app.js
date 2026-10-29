@@ -374,6 +374,7 @@ try {
   }
 
   async function animateInsertion() {
+    local.prizeVisible = false;
     local.displayReels = structuredClone(state.reels);
     local.displayStops = local.displayReels.map((reel) =>
       Math.max(0, reel.indexOf(config.slots.stone)),
@@ -404,22 +405,20 @@ try {
     local.displayReels = null;
     local.displayStops = null;
     send({ type: "SHOW_PREVIEW" });
-    if (state.phase !== "preview") {
-      local.collected = [];
+    if (state.phase === "preview") {
+      local.prizeVisible = true;
       render();
-      return;
+      play("win");
+      burst(app.querySelector(".prize-board"), true);
+      announce("ui.previewMax");
+      await countPrize(state.preview.maximum.payout);
+      await wait("previewPrize");
+      local.prizeVisible = false;
+      send({ type: "END_PREVIEW" });
     }
-    local.prizeVisible = true;
-    render();
-    play("win");
-    burst(app.querySelector(".prize-board"), true);
-    announce("ui.previewMax");
-    await countPrize(state.preview.maximum.payout);
-    await wait("previewPrize");
-    local.prizeVisible = false;
     local.collected = [];
-    send({ type: "END_PREVIEW" });
-    announce("ui.ready");
+    while (state.phase === "earned_ready") await playSlotSpin(true);
+    if (state.phase === "wheel") announce("ui.ready");
   }
 
   async function exitCard(action) {
@@ -437,10 +436,10 @@ try {
     await wait("reward");
     await animateGrid();
   }
-  async function finalSpin() {
+  async function playSlotSpin(earned = false) {
     local.slotSpinning = true;
     local.prizeVisible = false;
-    send({ type: "SPIN_FINAL" });
+    send({ type: earned ? "SPIN_EARNED" : "SPIN_FINAL" });
     await revealReels("finalSpin", true);
     if (state.lastSpin.payout > 0) {
       play("win");
@@ -448,7 +447,8 @@ try {
     }
     await countPrize(state.lastSpin.payout);
     await wait("finalPrize");
-    send({ type: "END_FINAL_RESULT" });
+    local.prizeVisible = false;
+    send({ type: earned ? "END_EARNED_RESULT" : "END_FINAL_RESULT" });
     if (state.phase === "finished") {
       burst(app.querySelector(".prize-board"), true);
       announce("ui.finished");
@@ -566,7 +566,7 @@ try {
           send({ type: "CHOOSE_PROGRESSION", continue: action === "continue" });
           break;
         case "final-spin":
-          await finalSpin();
+          await playSlotSpin();
           break;
         case "restart":
           resetGame();
@@ -580,10 +580,12 @@ try {
         await animateInsertion();
       }
       if (state.phase === "finale") {
-        play("win");
-        await wait("finalIntro");
+        if (state.finalSpins > 0) {
+          play("win");
+          await wait("finalIntro");
+        }
         send({ type: "START_FINAL" });
-        announce("ui.finalReady");
+        announce(state.phase === "finished" ? "ui.finished" : "ui.finalReady");
       }
     } catch (error) {
       console.error(error);

@@ -84,6 +84,7 @@ test('large rewards stop at the cap and preserve every overflow symbol until the
   assert.equal(state.insertion.length,2);
   const turn=state.turn;
   state=transition(state,{type:'SHOW_PREVIEW'},{...context,rng:()=>{throw Error('UNEXPECTED_RANDOM');}});
+  if(state.phase==='preview') state=transition(state,{type:'END_PREVIEW'},context);
   assert.equal(state.phase,'wheel_transition');
   assert.throws(()=>transition(state,{type:'SPIN_WHEEL'},context),/INVALID_ACTION/);
   state=transition(state,{type:'ADVANCE_WHEEL'},context);
@@ -95,24 +96,46 @@ test('large rewards stop at the cap and preserve every overflow symbol until the
   assert.deepEqual(state.pendingTokens,[]);
   assert.equal(state.turn,turn);
   state=transition(state,{type:'SHOW_PREVIEW'},context);
+  if(state.phase==='preview') state=transition(state,{type:'END_PREVIEW'},context);
   assert.equal(state.phase,'finale');
   for(const reel of state.reels) for(const [symbol,n] of Object.entries(config.slots.target)) assert.equal(reel.filter(s=>s===symbol).length,n);
 });
 
-test('exact cap without overflow advances once and reveals a new maximum in wheel two', () => {
+test('an earned spin waits for overflow symbols to finish installing on the next wheel', () => {
+  const context={config,decks,rng:seededRandom(91)};
+  let state=stateWithFill(70);
+  state.phase='grid';
+  state.extraction={tokens:full().flat().slice(70).map(symbol=>({symbol,units:1})),draws:[]};
+  state.spins=1;state.pendingSpins=1;
+  state=transition(state,{type:'INSERT_TOKENS'},context);
+  state=transition(state,{type:'SHOW_PREVIEW'},context);
+  if(state.phase==='preview') state=transition(state,{type:'END_PREVIEW'},context);
+  assert.equal(state.phase,'wheel_transition');
+  assert.equal(state.history.length,0);
+  state=transition(state,{type:'ADVANCE_WHEEL'},context);
+  state=transition(state,{type:'INSERT_TOKENS'},context);
+  assert.equal(filledPositions(state,config),80);
+  state=transition(state,{type:'SHOW_PREVIEW'},context);
+  if(state.phase==='preview') state=transition(state,{type:'END_PREVIEW'},context);
+  assert.equal(state.phase,'earned_ready');
+  state=transition(state,{type:'SPIN_EARNED'},context);
+  assert.equal(state.history.length,1);
+  assert.equal(state.lastSpin.line.includes(config.slots.stone),false);
+});
+
+test('exact cap without overflow advances once and skips an unchanged maximum in wheel two', () => {
   const rng=seededRandom(5),context={config,decks,rng};
   let state=stateWithFill(71);
   state.phase='grid'; state.extraction={tokens:[{symbol:full().flat()[71],units:1}],draws:[]};
   state=transition(state,{type:'INSERT_TOKENS'},context);
   state=transition(state,{type:'SHOW_PREVIEW'},context);
+  if(state.phase==='preview') state=transition(state,{type:'END_PREVIEW'},context);
   assert.equal(state.phase,'wheel_transition');
   state=transition(state,{type:'ADVANCE_WHEEL'},context);
   state=transition(state,{type:'INSERT_TOKENS'},context);
   assert.equal(state.insertion.length,0);
   state=transition(state,{type:'SHOW_PREVIEW'},context);
-  assert.equal(state.phase,'preview');
-  assert.equal(state.newMaximum,true);
-  state=transition(state,{type:'END_PREVIEW'},context);
+  assert.equal(state.newMaximum,false);
   assert.equal(state.phase,'wheel');
   assert.equal(state.wheel,config.progression.nextWheel);
 });

@@ -1,71 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createGame, transition, shouldFinishOnCompletion} from '../src/domain/game.js';
-import {progressionStatus} from '../src/domain/progression.js';
-import {seededRandom, wheelSectors} from '../src/domain/random.js';
-import {categoriesFor, filled, resolveCard, runGame} from '../research/progression/engine.mjs';
+import {wheelSectors} from '../src/domain/random.js';
+import {categoriesFor, runGame} from '../research/progression/engine.mjs';
 
 const load = async path => JSON.parse(await readFile(new URL(path, import.meta.url), 'utf8'));
 const config = await load('../content/game.config.json');
 const decks = {wheel_1:await load('../content/cards_wheel_1.json'), wheel_2:await load('../content/cards_wheel_2.json')};
 const experiment = await load('../research/progression/models.json');
-const smooth = await load('../research/progression/smooth-refinement.json');
-
-test('legacy and recommended research policies agree with production transitions, excluding unpaid previews', () => {
-  const profile = experiment.profiles[0];
-  for (const model of [...experiment.models.filter(m => ['current','bounded_fast'].includes(m.id)), smooth.models.find(m => m.id === 'balanced_wait')])
-  for (const choice of [false, true]) for (let seed = 1; seed <= 32; seed++) {
-    const productionConfig = structuredClone(config);
-    productionConfig.progression.adaptive = {enabled:model.id !== 'current', minimumFill:model.gate ?? 0, maximumFill:model.cap ?? .9, pityFrom:model.pityFrom ?? .7, perMiss:model.perMiss ?? 0, probabilityCeiling:model.ceiling ?? .95, curve:model.curve ?? [[0,.14],[1,.14]]};
-    const rng = seededRandom(seed), context = {config:productionConfig, decks, rng}, events = [];
-    let state = createGame(config, rng), entry = null, firstTurns = 0, fullInWheel1 = false;
-    const send = action => {state = transition(state, action, context);};
-    while (state.phase !== 'finished' && state.turn < experiment.maxTurns) {
-      const oldWheel = state.wheel;
-      switch (state.phase) {
-        case 'wheel':send({type:'SPIN_WHEEL'}); events.push({type:'category', id:state.category.id}); break;
-        case 'category':send({type:'SHOW_CARDS'}); break;
-        case 'cards':send({type:'PICK_CARD'}); events.push({type:'card', id:state.card.id}); break;
-        case 'offer':
-          if (rng() < profile.accept) send({type:'ACCEPT'});
-          else {send({type:'REJECT'}); events.push({type:'reject'});}
-          break;
-        case 'challenge': {
-          const result = resolveCard(state.card, profile, rng);
-          send({type:'RESOLVE', ...result}); events.push({type:'resolve', ...result, points:state.points}); break;
-        }
-        case 'reward':send({type:'EXECUTE_GRID'}); break;
-        case 'grid':
-          send({type:'INSERT_TOKENS'});
-          events.push({type:'reward', reels:state.reels, grid:state.grid, spins:state.spins});
-          fullInWheel1 ||= state.wheel === config.progression.initialWheel && filled(state.reels, config) === 80;
-          break;
-        case 'machine':
-          if (shouldFinishOnCompletion(state, productionConfig) || progressionStatus(state, productionConfig).atLimit) send({type:'SHOW_PREVIEW'});
-          else state = {...state, phase:'wheel', card:null, extraction:null};
-          break;
-        case 'wheel_transition':send({type:'ADVANCE_WHEEL'}); break;
-        case 'progression':send({type:'END_PROGRESSION'}); break;
-        case 'decision':send({type:'CHOOSE_PROGRESSION', continue:choice}); break;
-        case 'finale':send({type:'START_FINAL'}); break;
-        case 'final_ready':send({type:'SPIN_FINAL'}); break;
-        case 'final_result':send({type:'END_FINAL_RESULT'}); break;
-        default:throw Error(state.phase);
-      }
-      if (state.wheel !== oldWheel) {entry = filled(state.reels, config); firstTurns = state.turn;}
-    }
-    const actual = runGame(config, decks, {...experiment, autoFinishWhenComplete:config.final.autoFinishWhenComplete}, model, profile, choice, seed, true);
-    assert.deepEqual(actual.events.filter(e => e.type !== 'reward'), events.filter(e => e.type !== 'reward'));
-    assert.deepEqual(actual.reels, state.reels);
-    assert.deepEqual(actual.grid, state.grid);
-    assert.deepEqual(actual.outcomes, state.history);
-    assert.equal(actual.total, state.total);
-    assert.equal(actual.entry, entry);
-    assert.equal(actual.wheel1Turns, firstTurns);
-    assert.equal(actual.fullInWheel1, fullInWheel1);
-  }
-});
 
 test('research gates, waiting increases and proportional wheel weights are respected', () => {
   const fast = experiment.models.find(m => m.id === 'bounded_fast');

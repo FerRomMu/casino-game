@@ -134,6 +134,49 @@ test("mobile symbol installation reveals a maximum without spinning the reels", 
   await noOverflow(page);
 });
 
+test("earned spin plays after installation and adds to the shared pot", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const source = await readFile(new URL("../src/domain/game.js", import.meta.url), "utf8");
+  await page.route("**/src/domain/game.js", (route) => route.fulfill({
+    contentType: "text/javascript",
+    body: source.replace("export function createGame(", "function fixtureBaseGame(") + `
+      export function createGame(config,rng,participantId) {
+        const state=fixtureBaseGame(config,rng,participantId);
+        state.reels=Array.from({length:config.slots.reels},()=>[
+          ...Array(config.slots.positions-1).fill('lemon'),config.slots.stone
+        ]);
+        state.grid={cells:[
+          {kind:'effect',effect:'spin'},
+          {kind:'symbol',symbol:'cherry',units:1},
+          ...Array(config.grid.rows*config.grid.columns-2).fill(null)
+        ],pool:[],reserves:[]};
+        return state;
+      }`,
+  }));
+  await prepare(page, {
+    force: { wheel_1: "cat_1" }, reduced: false,
+    timings: { previewPrize: 450, finalSpin: 1200, finalPrize: 500, flight: 80 },
+  });
+  await drawChallenge(page);
+  await click(page, "success");
+  await expect(page.locator('#stage[data-phase="preview"] .new-maximum.is-visible')).toBeVisible();
+  await expect(page.getByRole("progressbar", { name: strings["ui.inventory"] })).toHaveAttribute("aria-valuenow", "77");
+  await page.waitForSelector('#stage[data-phase="earned_result"] .reel-spinning');
+  await expect(page.locator("[data-accumulated]")).toHaveAttribute("data-value", "0");
+  await expect(page.locator("[data-game-total]")).toHaveAttribute("data-value", "0");
+  const maximum = Number(await page.locator("[data-prize-maximum]").getAttribute("data-prize-maximum"));
+  await expect(page.locator("[data-pot]")).toHaveAttribute("data-value", String(maximum));
+  await ready(page, "wheel");
+  const total = Number(await page.locator("[data-game-total]").getAttribute("data-value"));
+  expect(total).toBeGreaterThan(0);
+  await expect(page.locator("[data-banked-spins]")).toHaveText("1");
+  await drawChallenge(page);
+  await click(page, "success");
+  await ready(page, "wheel");
+  await expect(page.locator("[data-game-total]")).toHaveAttribute("data-value", String(total));
+  await noOverflow(page);
+});
+
 test("weighted SVG geometry, normalized probabilities and an all-in-one sector", async ({
   page,
 }) => {
@@ -446,7 +489,6 @@ test("a complete deterministic game runs with sound, cards, rewards and the fina
     expect.arrayContaining([
       "wheel",
       "challenge",
-      "final_ready",
       "finished",
     ]),
   );
@@ -609,7 +651,7 @@ test("insertion lands on stones and skips the maximum animation when unchanged",
     await click(page, "success");
     await page.waitForSelector('#stage[data-phase="wheel"][data-busy="false"]');
     await ready(page, "wheel");
-    const boards = await page.evaluate(() => window.previewBoards);
+    const boards = await page.evaluate(() => window.previewBoards.filter((board) => board.kind === "maximum"));
     expect(boards).toHaveLength(1);
     expect(boards[0].kind).toBe("maximum");
     expect(boards[0].label).toBe(strings["ui.previewMax"]);
@@ -916,7 +958,8 @@ for (const [width, height] of [
       const state=fixtureBaseGame(config,rng,participantId);
       state.reels=Array.from({length:config.slots.reels},()=>Object.entries(config.slots.target).flatMap(([id,count])=>Array(count).fill(id)));
       state.preview=analyzeSlots(state.reels,config.slots);
-      state.phase='final_ready';state.wheel=config.progression.nextWheel;state.spins=config.final.maxSpins;
+      state.phase='final_ready';state.wheel=config.progression.nextWheel;state.finalSpins=config.final.maxSpins;
+      state.total=config.slots.payout.exceptional.value;
       return state;
     }
   `,
@@ -1016,13 +1059,11 @@ for (const completion of ['symbol', 'spin', 'advance']) {
       await ready(page,'challenge');
       await click(page,'success');
     }
-    await ready(page,'final_ready');
+    await ready(page,'finished');
     await expect(page.locator('[data-filled]')).toContainText('80');
-    await expect(page.locator('[data-pot]')).toHaveAttribute('data-value', String(original.final.maxSpins * original.slots.payout.exceptional.value));
-    for (let i=0;i<original.final.maxSpins;i++) {
-      await click(page,'final-spin');
-      await ready(page,i===original.final.maxSpins-1?'finished':'final_ready');
-    }
+    await expect(page.locator('[data-action="final-spin"]')).toHaveCount(0);
+    await expect(page.locator('[data-game-total]')).toHaveAttribute('data-value',
+      await page.locator('[data-prize]').getAttribute('data-value'));
     await expect(page.locator('.load-error')).toHaveCount(0);
     await noOverflow(page);
   });
@@ -1127,13 +1168,12 @@ test('ninety percent handoff precedes overflow insertion and automatic finale', 
   await expect(page.locator('#stage')).toContainText(strings['ui.stageUnlocked']);
   await noOverflow(page);
   await page.screenshot({path:'artifacts/adaptive-handoff-mobile.png'});
-  await ready(page,'final_ready');
+  await ready(page,'finished');
   const observed=await page.evaluate(()=>window.handoffs);
   expect(observed.some(s=>s.phase==='wheel_transition'&&s.filled===72&&s.busy==='true')).toBe(true);
   expect(observed.filter(s=>s.wheel===strings['wheel_1.label']).every(s=>s.filled<=72)).toBe(true);
   expect(observed.some(s=>s.wheel===strings['wheel_2.label']&&s.filled>72)).toBe(true);
   await expect(page.locator('[data-filled]')).toHaveText('80 / 80');
-  await expect(page.locator('[data-remaining-spins]')).toHaveText(String(original.final.maxSpins));
-  await click(page,'final-spin');await ready(page,'final_ready');
-  await expect(page.locator('[data-remaining-spins]')).toHaveText(String(original.final.maxSpins-1));
+  await expect(page.locator('[data-action="final-spin"]')).toHaveCount(0);
+  await expect(page.locator('[data-game-total]')).toHaveAttribute('data-value','0');
 });

@@ -135,7 +135,7 @@ export function createRenderer(config, t) {
       maximumFractionDigits: config.ui.prizeTable.fractionDigits,
     });
     const result =
-      ["final_result", "final_ready", "finished"].includes(s.phase) &&
+      ["earned_result", "final_result", "final_ready", "finished"].includes(s.phase) &&
       l.prizeVisible &&
       !l.slotSpinning
         ? s.lastSpin
@@ -160,7 +160,7 @@ export function createRenderer(config, t) {
     const reels = l.displayReels ?? s.reels;
     const stops = l.displayStops ?? s.lastSpin?.stops;
     const result =
-      ["final_result", "final_ready", "finished"].includes(s.phase) &&
+      ["earned_result", "final_result", "final_ready", "finished"].includes(s.phase) &&
       l.prizeVisible &&
       !l.slotSpinning
         ? s.lastSpin
@@ -184,25 +184,25 @@ export function createRenderer(config, t) {
   }
 
   function slotsScene(s, l) {
-    const final = [
-        "finale",
-        "final_ready",
-        "final_result",
-        "finished",
-      ].includes(s.phase),
-      finished = s.phase === "finished",
-      preview = s.phase === "preview";
-    // Keep both banks at their previous values until the last reel reveals the prize.
-    const bankState =
-      s.phase === "final_result" && l.slotSpinning
-        ? { ...s, total: s.total - s.lastSpin.payout, spins: s.spins + 1 }
-        : s;
+    const final = ["finale", "final_ready", "final_result", "finished"].includes(s.phase);
+    const earned = ["earned_ready", "earned_result"].includes(s.phase);
+    const spinningResult = ["earned_result", "final_result"].includes(s.phase);
+    const finished = s.phase === "finished";
+    const preview = s.phase === "preview";
+    // Hold both pots at their pre-spin values until all reels stop.
+    const bankState = spinningResult && l.slotSpinning
+      ? {
+          ...s,
+          total: s.total - s.lastSpin.payout,
+          pendingSpins: s.pendingSpins + (earned ? 1 : 0),
+          finalSpins: s.finalSpins + (final ? 1 : 0),
+        }
+      : s;
     const bank = finalBank(bankState);
     const idle = (l.displayReels ?? s.reels).map(
-      (reel) =>
-        reel.find((id) => id !== config.slots.stone) ?? config.slots.stone,
+      (reel) => reel.find((id) => id !== config.slots.stone) ?? config.slots.stone,
     );
-    const line = final ? (s.lastSpin?.line ?? idle) : idle;
+    const line = (spinningResult || final) ? (s.lastSpin?.line ?? idle) : idle;
     const prize = finished
       ? s.total
       : preview
@@ -212,14 +212,26 @@ export function createRenderer(config, t) {
       ? "ui.finished"
       : s.phase === "finale"
         ? "ui.finalTitle"
-        : s.phase === "final_result"
+        : spinningResult
           ? "ui.prize"
+          : earned
+            ? "ui.earnedSpin"
           : final
             ? "ui.finalReady"
             : preview
               ? "ui.preview"
               : "ui.installing";
-    return `<section class="scene slots-scene ${l.enter ? "scene-enter" : ""} ${l.prizeVisible ? "show-prize" : ""}"><div class="scene-heading"><span class="eyebrow">${text(final ? "ui.finalBadge" : preview ? "ui.previewBadge" : "ui.machine")}</span><h1>${text(title)}</h1>${!final && !preview ? `<p>${text("ui.installingHint")}</p>` : ""}</div>${final ? `<div class="final-stats"><div class="final-spin-bank"><span>${text("ui.remaining")}</span><b data-remaining-spins>${number(s.spins)}</b></div><div class="accumulated-bank"><span>${text("ui.accumulated")}</span><b data-accumulated data-value="${bank.accumulated}">${money(bank.accumulated)}</b></div><div class="pot-bank"><span>${text("ui.pot")}</span><b data-pot data-value="${bank.maximum}">${money(bank.maximum)}</b></div></div>` : ""}<div class="machine-theater">${payoutTable(s, l)}${machine(s, line, l)}${!final && !preview ? `<div class="token-queue" aria-label="${text("ui.collected")}">${s.extraction.tokens.map((token, i) => `<div data-queue="${i}" class="queue-token">${tileContent({ kind: "symbol", ...token })}</div>`).join("")}</div>` : ""}</div>${preview || s.phase === "final_result" || finished ? `<div class="prize-board ${l.prizeVisible || finished ? "is-visible" : ""} ${preview ? "new-maximum" : ""}" style="--prize-scale:${[...config.ui.prizeTiers].reverse().find((tier) => prize >= tier.minimum)?.scale ?? 1}" data-preview-kind="${preview ? "maximum" : "final"}" aria-live="polite"><span>${text(finished ? "ui.total" : preview ? "ui.previewMax" : prize > 0 ? "ui.prize" : "ui.zero")}</span><strong data-prize data-value="${prize}">${money(prize)}</strong></div>` : ""}${s.phase === "final_ready" ? `<div class="final-actions">${button("final-spin", "ui.finalSpin", "primary green-button final-spin", l.busy ? "disabled" : "")}<p>${text("ui.finalSpinHint")}</p></div>` : ""}${s.phase === "finale" ? `<div class="final-intro"><b>${number(s.spins)}</b><span>${text("ui.finalIntroLabel")}</span></div>` : ""}${s.phase === "final_result" && l.slotSpinning ? `<p class="spinning-label">${text("ui.prizePending")}</p>` : ""}${finished ? `<div class="finish-actions"><p>${text("ui.finishedHint")}</p>${button("restart", "app.restart", "primary green-button")}</div>` : ""}</section>`;
+    const remaining = earned ? s.pendingSpins : s.finalSpins;
+    return `<section class="scene slots-scene ${l.enter ? "scene-enter" : ""} ${l.prizeVisible ? "show-prize" : ""}">
+      <div class="scene-heading"><span class="eyebrow">${text(final ? "ui.finalBadge" : preview ? "ui.previewBadge" : "ui.machine")}</span><h1>${text(title)}</h1>${s.phase === "machine" ? `<p>${text("ui.installingHint")}</p>` : ""}</div>
+      ${final || earned ? `<div class="final-stats"><div class="final-spin-bank"><span>${text("ui.remaining")}</span><b data-remaining-spins>${number(spinningResult && l.slotSpinning ? remaining + 1 : remaining)}</b></div><div class="accumulated-bank"><span>${text("ui.accumulated")}</span><b data-accumulated data-value="${bank.accumulated}">${money(bank.accumulated)}</b></div><div class="pot-bank"><span>${text("ui.pot")}</span><b data-pot data-value="${bank.maximum}">${money(bank.maximum)}</b></div></div>` : ""}
+      <div class="machine-theater">${payoutTable(s, l)}${machine(s, line, l)}${s.phase === "machine" ? `<div class="token-queue" aria-label="${text("ui.collected")}">${s.extraction.tokens.map((token, i) => `<div data-queue="${i}" class="queue-token">${tileContent({ kind: "symbol", ...token })}</div>`).join("")}</div>` : ""}</div>
+      ${preview || spinningResult || finished ? `<div class="prize-board ${l.prizeVisible || finished ? "is-visible" : ""} ${preview ? "new-maximum" : ""}" style="--prize-scale:${[...config.ui.prizeTiers].reverse().find((tier) => prize >= tier.minimum)?.scale ?? 1}" data-preview-kind="${preview ? "maximum" : earned ? "earned" : "final"}" aria-live="polite"><span>${text(finished ? "ui.total" : preview ? "ui.previewMax" : prize > 0 ? "ui.prize" : "ui.zero")}</span><strong data-prize data-value="${prize}">${money(prize)}</strong></div>` : ""}
+      ${s.phase === "final_ready" ? `<div class="final-actions">${button("final-spin", "ui.finalSpin", "primary green-button final-spin", l.busy ? "disabled" : "")}<p>${text("ui.finalSpinHint")}</p></div>` : ""}
+      ${s.phase === "finale" && s.finalSpins > 0 ? `<div class="final-intro"><b>${number(s.finalSpins)}</b><span>${text("ui.finalIntroLabel")}</span></div>` : ""}
+      ${spinningResult && l.slotSpinning ? `<p class="spinning-label">${text("ui.prizePending")}</p>` : ""}
+      ${finished ? `<div class="finish-actions"><p>${text("ui.finishedHint")}</p>${button("restart", "app.restart", "primary green-button")}</div>` : ""}
+    </section>`;
   }
 
   function progressionScene(s, l) {
@@ -236,7 +248,9 @@ export function createRenderer(config, t) {
     l.previousFilled = filled;
     const fill = (filled / capacity) * 100;
     const from = (previousFilled / capacity) * 100;
-    return `<aside class="status-sidebar" data-no-spin><section class="jackpot-panel"><div class="jackpot-label">${art("crown")}<span>${text("ui.jackpot")}</span>${art("crown")}</div><strong>${money(config.slots.payout.exceptional.value)}</strong><div class="jackpot-symbols">${Array.from({ length: config.slots.reels }, () => symbol(config.slots.payout.exceptional.symbol)).join("")}</div><p>${text("ui.jackpotHint")}</p></section><section class="machine-status"><div class="panel-heading"><span>${text("ui.machine")}</span><span class="panel-tag">${filled === capacity ? text("ui.full") : `${Math.round((filled / capacity) * 100)}%`}</span></div><div class="mini-reels">${reels.map((reel) => `<div>${symbol([...reel].reverse().find((id) => id !== config.slots.stone) ?? config.slots.stone)}</div>`).join("")}</div><div class="capacity-label"><b data-filled>${filled}<small> / ${capacity}</small></b><span>${text("ui.filled")}</span></div><section class="composition"><h2>${text("ui.inventory")}</h2><div class="symbol-progress ${filled > previousFilled ? "is-growing" : ""}" role="progressbar" aria-label="${text("ui.inventory")}" aria-valuemin="0" aria-valuemax="${capacity}" aria-valuenow="${filled}" style="--fill:${fill}%;--from:${from}%"><span class="symbol-progress-fill" aria-hidden="true"></span></div></section></section><section class="spin-bank"><div>${art("spin")}<span>${text("ui.spins")}<small>${text("ui.spinBankHint")}</small></span><strong data-banked-spins>${number(s.spins)}</strong></div></section><section class="progress-panel"><div class="panel-heading"><span>${text("ui.progression")}</span><b>${s.progression} / ${config.progression.choiceAt}</b></div><div class="progression-dots">${Array.from({ length: config.progression.choiceAt }, (_, i) => `<span class="flame-medal ${i < s.progression ? "lit" : ""}">${art("flame")}</span>`).join("")}</div><p class="panel-caption">${progressionStatus(s, config).locked ? `${text("ui.progressLocked")} ${number(config.progression.adaptive.minimumFill * 100)}%` : text("ui.progressHint")}</p></section></aside>`;
+    const visibleTotal = ["earned_result", "final_result"].includes(s.phase) && l.slotSpinning
+      ? s.total - s.lastSpin.payout : s.total;
+    return `<aside class="status-sidebar" data-no-spin><section class="jackpot-panel"><div class="jackpot-label">${art("crown")}<span>${text("ui.jackpot")}</span>${art("crown")}</div><strong>${money(config.slots.payout.exceptional.value)}</strong><div class="jackpot-symbols">${Array.from({ length: config.slots.reels }, () => symbol(config.slots.payout.exceptional.symbol)).join("")}</div><p>${text("ui.jackpotHint")}</p></section><section class="machine-status"><div class="panel-heading"><span>${text("ui.machine")}</span><span class="panel-tag">${filled === capacity ? text("ui.full") : `${Math.round((filled / capacity) * 100)}%`}</span></div><div class="mini-reels">${reels.map((reel) => `<div>${symbol([...reel].reverse().find((id) => id !== config.slots.stone) ?? config.slots.stone)}</div>`).join("")}</div><div class="capacity-label"><b data-filled>${filled}<small> / ${capacity}</small></b><span>${text("ui.filled")}</span></div><section class="composition"><h2>${text("ui.inventory")}</h2><div class="symbol-progress ${filled > previousFilled ? "is-growing" : ""}" role="progressbar" aria-label="${text("ui.inventory")}" aria-valuemin="0" aria-valuemax="${capacity}" aria-valuenow="${filled}" style="--fill:${fill}%;--from:${from}%"><span class="symbol-progress-fill" aria-hidden="true"></span></div></section></section><section class="spin-bank"><div>${art("spin")}<span>${text("ui.earnedSpins")}<small>${text("ui.spinBankHint")}</small></span><strong data-banked-spins>${number(s.spins)}</strong></div><div class="total-balance"><span>${text("ui.accumulated")}</span><b data-game-total data-value="${visibleTotal}">${money(visibleTotal)}</b></div></section><section class="progress-panel"><div class="panel-heading"><span>${text("ui.progression")}</span><b>${s.progression} / ${config.progression.choiceAt}</b></div><div class="progression-dots">${Array.from({ length: config.progression.choiceAt }, (_, i) => `<span class="flame-medal ${i < s.progression ? "lit" : ""}">${art("flame")}</span>`).join("")}</div><p class="panel-caption">${progressionStatus(s, config).locked ? `${text("ui.progressLocked")} ${number(config.progression.adaptive.minimumFill * 100)}%` : text("ui.progressHint")}</p></section></aside>`;
   }
 
   function render(s, l) {

@@ -157,14 +157,15 @@ test('first finale appearance starts final directly and exhausts configured spin
   let state=transition(initial,{type:'SPIN_WHEEL'},context);
   assert.equal(state.phase,'finale');
   assert.equal(state.card,null);
-  assert.equal(state.spins,config.final.minSpins);
+  assert.equal(state.spins,0);
+  assert.equal(state.finalSpins,config.final.minSpins);
   state=transition(state,{type:'START_FINAL'},context);
   for(let i=0;i<config.final.minSpins;i++){
     state=transition(state,{type:'SPIN_FINAL'},context);
     state=transition(state,{type:'END_FINAL_RESULT'},context);
   }
   assert.equal(state.phase,'finished');
-  assert.equal(state.spins,0);
+  assert.equal(state.finalSpins,0);
   assert.equal(state.history.length,config.final.minSpins);
   assert.throws(()=>transition(state,{type:'SPIN_FINAL'},context),/INVALID_ACTION/);
 });
@@ -276,7 +277,7 @@ test('payout explanations identify the paying combination, wilds and one applied
 test('maximum final bank includes accumulated winnings and converges to the actual final total', async () => {
   const {finalBank}=await import('../src/domain/game.js');
   const {state,context}=setup();
-  state.phase='final_ready'; state.spins=4; state.total=15000;
+  state.phase='final_ready'; state.finalSpins=4; state.total=15000;
   state.reels=Array.from({length:4},()=>Array(20).fill('lemon'));
   state.preview=analyzeSlots(state.reels,config.slots);
   assert.deepEqual(finalBank(state),{accumulated:15000,maximum:415000});
@@ -289,6 +290,33 @@ test('maximum final bank includes accumulated winnings and converges to the actu
   }
   assert.equal(next.phase,'finished');
   assert.equal(finalBank(next).maximum,finalBank(next).accumulated);
+});
+
+test('earned spins pay immediately into one pot and only missing guarantee spins remain at finale', () => {
+  const {state:initial,context}=setup();
+  context.config=forced('w2_cat_4_finale');
+  let state=initial;
+  state.wheel='wheel_2';
+  state.phase='earned_ready'; state.spins=2; state.pendingSpins=2;
+  state.reels=Array.from({length:4},()=>Array(20).fill('lemon'));
+  state.preview=analyzeSlots(state.reels,config.slots);
+  for(let i=0;i<2;i++) {
+    state=transition(state,{type:'SPIN_EARNED'},context);
+    assert.equal(state.total,(i+1)*100000);
+    assert.equal(state.history.length,i+1);
+    state=transition(state,{type:'END_EARNED_RESULT'},context);
+  }
+  assert.equal(state.phase,'wheel');
+  assert.equal(state.pendingSpins,0);
+  state=transition(state,{type:'SPIN_WHEEL'},context);
+  assert.equal(state.phase,'finale');
+  assert.equal(state.finalSpins,1);
+  state=transition(state,{type:'START_FINAL'},context);
+  state=transition(state,{type:'SPIN_FINAL'},context);
+  state=transition(state,{type:'END_FINAL_RESULT'},context);
+  assert.equal(state.phase,'finished');
+  assert.equal(state.total,300000);
+  assert.equal(state.history.length,3);
 });
 
 test('attainable pay table uses reel positions, wilds and multipliers without inventing combinations', async () => {
@@ -368,7 +396,7 @@ test('automatic finale requires both complete reels and earned maximum spins in 
   assert.equal(shouldFinishOnCompletion(state, alternate), false);
 });
 
-test('last symbol or last earned spin closes after installation without an extra wheel or preview spin', () => {
+test('last symbol or earned spin settles before automatic finale without replaying earned spins', () => {
   for (const last of ['symbol', 'spin']) {
     const {state, context} = setup(42);
     state.reels = Array.from({length:config.slots.reels}, () => Object.entries(config.slots.target).flatMap(([symbol, n]) => Array(n).fill(symbol)));
@@ -390,20 +418,21 @@ test('last symbol or last earned spin closes after installation without an extra
     s = transition(s, {type:'INSERT_TOKENS'}, context);
     assert.equal(s.phase, 'machine');
     s = transition(s, {type:'SHOW_PREVIEW'}, {...context, rng:() => {throw Error('UNEXPECTED_RNG');}});
+    if (s.phase === 'preview') s = transition(s, {type:'END_PREVIEW'}, context);
+    while (s.phase === 'earned_ready') {
+      s = transition(s, {type:'SPIN_EARNED'}, context);
+      s = transition(s, {type:'END_EARNED_RESULT'}, context);
+    }
     assert.equal(s.phase, 'finale');
     assert.equal(s.spins, config.final.maxSpins);
     assert.equal(s.turn, 7);
-    assert.equal(s.total, 0);
-    assert.equal(s.history.length, 0);
+    assert.equal(s.history.length, last === 'spin' ? 1 : 0);
+    assert.equal(s.total, s.history.reduce((sum, result) => sum + result.payout, 0));
     assert.equal(s.preview.maximum.payout, config.slots.payout.exceptional.value);
     assert.deepEqual(state, before);
     s = transition(s, {type:'START_FINAL'}, context);
-    for (let i = 0; i < config.final.maxSpins; i++) {
-      s = transition(s, {type:'SPIN_FINAL'}, context);
-      s = transition(s, {type:'END_FINAL_RESULT'}, context);
-    }
     assert.equal(s.phase, 'finished');
-    assert.equal(s.history.length, config.final.maxSpins);
+    assert.equal(s.finalSpins, 0);
   }
 });
 
